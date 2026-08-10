@@ -94,7 +94,14 @@ export class AuthService {
     await authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
 
     // Envía el correo mediante el servicio
-    await emailService.sendPasswordResetEmail(user.email, code);
+    try {
+      await emailService.sendPasswordResetEmail(user.email, code);
+    } catch (error) {
+      console.error(`[ForgotPassword] Error enviando correo a ${user.email}. Detalles:`, error);
+      if (env.NODE_ENV !== "development") {
+        throw error;
+      }
+    }
 
     return true;
   }
