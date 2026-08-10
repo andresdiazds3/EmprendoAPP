@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { authService } from "./auth.service";
 import { registerSchema } from "./dtos/register.dto";
 import { loginSchema } from "./dtos/login.dto";
+import { forgotPasswordSchema } from "./dtos/forgot-password.dto";
+import { resetPasswordSchema } from "./dtos/reset-password.dto";
 import { created, ok } from "../../shared/utils/http-response";
 import { AuthenticatedRequest } from "../../core/types";
 
@@ -26,6 +28,18 @@ export class AuthController {
     const userId = req.user!.id;
     const user = await authService.getMe(userId);
     return ok(res, user, "Datos del usuario obtenidos");
+  }
+
+  async forgotPassword(req: Request, res: Response) {
+    const validatedData = forgotPasswordSchema.parse(req.body);
+    await authService.forgotPassword(validatedData.email);
+    return ok(res, null, "Si el correo está registrado, recibirás un código de recuperación.");
+  }
+
+  async resetPassword(req: Request, res: Response) {
+    const validatedData = resetPasswordSchema.parse(req.body);
+    await authService.resetPassword(validatedData.email, validatedData.code, validatedData.newPassword);
+    return ok(res, null, "Contraseña actualizada correctamente");
   }
 }
 

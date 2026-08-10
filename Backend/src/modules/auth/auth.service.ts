@@ -1,10 +1,12 @@
 import bcrypt from "bcrypt";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env";
 import { ConflictError, NotFoundError, UnauthorizedError } from "../../core/errors";
 import { authRepository } from "./auth.repository";
 import { RegisterDto } from "./dtos/register.dto";
 import { LoginDto } from "./dtos/login.dto";
+import { emailService } from "../../shared/services/email.service";
 
 export class AuthService {
   async register(dto: RegisterDto) {
@@ -67,6 +69,61 @@ export class AuthService {
       email: user.email,
       name: user.name,
     };
+  }
+
+  async forgotPassword(email: string): Promise<boolean> {
+    const user = await authRepository.findByEmail(email);
+    if (!user) {
+      // Retornar éxito silencioso para evitar la enumeración de emails
+      console.log(`[ForgotPassword] Solicitud para email no registrado: ${email}`);
+      return true;
+    }
+
+    // Invalida cualquier token previo sin usar
+    await authRepository.invalidateUserResetTokens(user.id);
+
+    // Genera un código de 6 dígitos
+    const code = crypto.randomInt(100000, 999999).toString();
+    console.log(`[ForgotPassword] Código de recuperación generado para ${email}: ${code} (SHA256 Hash guardado)`);
+
+    // Hashea el código con SHA256 para guardar en base de datos
+    const tokenHash = crypto.createHash("sha256").update(code).digest("hex");
+    const expiresAt = new Date(Date.now() + env.PASSWORD_RESET_CODE_EXPIRES_MIN * 60 * 1000);
+
+    // Guarda el token en base de datos
+    await authRepository.createPasswordResetToken(user.id, tokenHash, expiresAt);
+
+    // Envía el correo mediante el servicio
+    await emailService.sendPasswordResetEmail(user.email, code);
+
+    return true;
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string): Promise<boolean> {
+    const user = await authRepository.findByEmail(email);
+    if (!user) {
+      throw new UnauthorizedError("Código inválido o expirado");
+    }
+
+    // Hashea el código recibido para buscar coincidencia en DB
+    const tokenHash = crypto.createHash("sha256").update(code).digest("hex");
+
+    // Busca un token válido
+    const resetToken = await authRepository.findValidResetToken(user.id, tokenHash);
+    if (!resetToken) {
+      throw new UnauthorizedError("Código inválido o expirado");
+    }
+
+    // Hashea la nueva contraseña con bcrypt
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    // Actualiza la contraseña en la base de datos
+    await authRepository.updateUserPassword(user.id, passwordHash);
+
+    // Invalida el token usado
+    await authRepository.markResetTokenAsUsed(resetToken.id);
+
+    return true;
   }
 
   private generateToken(userId: string, email: string): string {
