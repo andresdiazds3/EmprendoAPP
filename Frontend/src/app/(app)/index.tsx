@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { user, logout } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -32,6 +34,15 @@ export default function HomeScreen() {
             Esta es tu pantalla de inicio protegida.
           </Text>
         </View>
+
+        {/* Botón Principal para ir al inventario */}
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.push("/(app)/products" as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.primaryButtonText}>Gestionar Productos</Text>
+        </TouchableOpacity>
 
         {/* Botón de Logout como link secundario abajo */}
         <TouchableOpacity
@@ -91,6 +102,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
     maxWidth: 260,
+  },
+  primaryButton: {
+    backgroundColor: "#6D28D9",
+    width: "100%",
+    height: 52,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
   logoutButton: {
     paddingVertical: 12,

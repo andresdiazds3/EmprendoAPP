@@ -5,6 +5,8 @@ import { errorHandler } from "./core/middlewares/error-handler.middleware";
 import { rateLimiter } from "./core/middlewares/rate-limiter.middleware";
 
 import { authRoutes } from "./modules/auth/auth.routes";
+import { productsRoutes } from "./modules/products/products.routes";
+import { inventoryRoutes } from "./modules/inventory/inventory.routes";
 
 export const app = express();
 
@@ -18,6 +20,8 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productsRoutes);
+app.use("/api/inventory", inventoryRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Ruta no encontrada: ${req.originalUrl}` });
