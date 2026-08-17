@@ -47,6 +47,14 @@ export class ProductsController {
     await productsService.delete(userId, productId);
     return noContent(res);
   }
+
+  // Restaura un producto borrado por ID
+  async restore(req: AuthenticatedRequest, res: Response) {
+    const productId = req.params.id;
+    const userId = req.user!.id;
+    const result = await productsService.restore(userId, productId);
+    return ok(res, result, "Producto restaurado exitosamente");
+  }
 }
 
 export const productsController = new ProductsController();

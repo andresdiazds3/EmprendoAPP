@@ -18,6 +18,7 @@ export interface ListProductsParams {
   pageSize?: number;
   search?: string;
   lowStock?: boolean;
+  trash?: boolean;
 }
 
 export interface PaginatedResult<T> {
@@ -57,5 +58,11 @@ export const productsApi = {
   delete: async (id: string) => {
     const response = await api.delete<{ success: boolean }>(`/api/products/${id}`);
     return response.data;
+  },
+
+  // Restaurar un producto borrado lógicamente
+  restore: async (id: string) => {
+    const response = await api.post<{ success: boolean; data: Product }>(`/api/products/${id}/restore`);
+    return response.data.data;
   },
 };

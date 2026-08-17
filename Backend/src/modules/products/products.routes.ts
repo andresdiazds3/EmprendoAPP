@@ -13,5 +13,6 @@ router.get("/", catchAsync(productsController.list));
 router.get("/:id", catchAsync(productsController.getById));
 router.patch("/:id", catchAsync(productsController.update));
 router.delete("/:id", catchAsync(productsController.delete));
+router.post("/:id/restore", catchAsync(productsController.restore));
 
 export const productsRoutes = router;

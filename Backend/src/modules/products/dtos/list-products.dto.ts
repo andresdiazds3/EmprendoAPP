@@ -16,6 +16,10 @@ export const listProductsSchema = z.object({
     (val) => val === "true" || val === "1" || val === true,
     z.boolean()
   ).optional(),
+  trash: z.preprocess(
+    (val) => val === "true" || val === "1" || val === true,
+    z.boolean()
+  ).optional(),
 });
 
 export type ListProductsDto = z.infer<typeof listProductsSchema>;

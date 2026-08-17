@@ -17,9 +17,11 @@ export class ProductsService {
     return buildPaginatedResult(items, total, page, pageSize);
   }
 
-  // Obtiene un producto por su ID, validando pertenencia
-  async getById(userId: string, productId: string) {
-    const product = await productsRepository.findById(userId, productId);
+  // Obtiene un producto por su ID, validando pertenencia (opcionalmente incluye eliminados)
+  async getById(userId: string, productId: string, includeDeleted = false) {
+    const product = includeDeleted
+      ? await productsRepository.findByIdIncludingDeleted(userId, productId)
+      : await productsRepository.findById(userId, productId);
     if (!product) {
       throw new NotFoundError("Producto");
     }
@@ -36,6 +38,12 @@ export class ProductsService {
   async delete(userId: string, productId: string) {
     await this.getById(userId, productId);
     return productsRepository.softDelete(productId);
+  }
+
+  // Restaura un producto borrado lógicamente de la papelera
+  async restore(userId: string, productId: string) {
+    await this.getById(userId, productId, true);
+    return productsRepository.restore(productId);
   }
 }
 

@@ -7,10 +7,11 @@ import {
   StyleSheet,
   ActivityIndicator,
   FlatList,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "../../../lib/products.api";
 import { inventoryApi } from "../../../lib/inventory.api";
 
@@ -31,8 +32,10 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function ProductsListScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterLowStock, setFilterLowStock] = useState(false);
+  const [viewTrash, setViewTrash] = useState(false);
 
   const debouncedSearch = useDebounce(searchQuery, 400);
 
@@ -41,7 +44,7 @@ export default function ProductsListScreen() {
   const { data: lowStockAlerts } = useQuery({
     queryKey: ["inventory", "low-stock-count"],
     queryFn: () => inventoryApi.getLowStockAlerts(),
-    enabled: !debouncedSearch,
+    enabled: !debouncedSearch && !viewTrash,
   });
 
   // Query infinita para listar productos paginados
@@ -53,18 +56,48 @@ export default function ProductsListScreen() {
     isLoading,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["products", debouncedSearch, filterLowStock],
+    queryKey: ["products", debouncedSearch, filterLowStock, viewTrash],
     queryFn: ({ pageParam = 1 }) =>
       productsApi.list({
         page: pageParam,
         pageSize: 20,
         search: debouncedSearch || undefined,
         lowStock: filterLowStock || undefined,
+        trash: viewTrash || undefined,
       }),
     getNextPageParam: (lastPage) =>
       lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
   });
+
+  // Mutación para restaurar producto de la papelera
+  const restoreMutation = useMutation({
+    mutationFn: (productId: string) => productsApi.restore(productId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory", "low-stock-count"] });
+      Alert.alert("Éxito", "El producto ha sido restaurado.");
+    },
+    onError: (error: any) => {
+      console.error("Error al restaurar producto:", error);
+      const msg = error.response?.data?.message || "No se pudo restaurar el producto.";
+      Alert.alert("Error", msg);
+    },
+  });
+
+  const handleRestoreProduct = (productId: string, productName: string) => {
+    Alert.alert(
+      "Restaurar Producto",
+      `¿Deseas restaurar "${productName}" a tu inventario activo?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Restaurar",
+          onPress: () => restoreMutation.mutate(productId),
+        },
+      ]
+    );
+  };
 
   // Efecto para recargar los datos de conteo al volver a enfocar la pantalla
   useEffect(() => {
@@ -80,28 +113,63 @@ export default function ProductsListScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>← Inicio</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mis Productos</Text>
+        <Text style={styles.headerTitle}>{viewTrash ? "Papelera de Productos" : "Mis Productos"}</Text>
+        {!viewTrash ? (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push("/(app)/products/new" as any)}
+          >
+            <Text style={styles.addButtonText}>+ Nuevo</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerPlaceholder} />
+        )}
+      </View>
+
+      {/* Buscador (Solo si no estamos en Papelera) */}
+      {!viewTrash && (
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar producto por nombre..."
+            placeholderTextColor="#6B7280"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      )}
+
+      {/* Chips de Filtros Rápidos (Bajo Stock / Papelera) */}
+      <View style={styles.filterChipsRow}>
         <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.push("/(app)/products/new" as any)}
+          style={[styles.chipButton, filterLowStock && styles.chipActive]}
+          onPress={() => {
+            setFilterLowStock(!filterLowStock);
+            setViewTrash(false);
+          }}
+          activeOpacity={0.7}
         >
-          <Text style={styles.addButtonText}>+ Nuevo</Text>
+          <Text style={[styles.chipText, filterLowStock && styles.chipTextActive]}>
+            Bajo stock
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.chipButton, viewTrash && styles.chipActive]}
+          onPress={() => {
+            setViewTrash(!viewTrash);
+            setFilterLowStock(false);
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.chipText, viewTrash && styles.chipTextActive]}>
+            Papelera
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Buscador */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar producto por nombre..."
-          placeholderTextColor="#6B7280"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
-
       {/* Banners Informativos / Filtros activos */}
-      {!debouncedSearch && lowStockAlerts && lowStockAlerts.length > 0 && !filterLowStock && (
+      {!viewTrash && !debouncedSearch && lowStockAlerts && lowStockAlerts.length > 0 && !filterLowStock && (
         <View style={styles.alertBanner}>
           <Text style={styles.alertBannerText}>
             Tienes <Text style={styles.boldText}>{lowStockAlerts.length}</Text> producto(s) con stock bajo.
@@ -112,7 +180,7 @@ export default function ProductsListScreen() {
         </View>
       )}
 
-      {filterLowStock && (
+      {!viewTrash && filterLowStock && (
         <View style={styles.filterBanner}>
           <Text style={styles.filterBannerText}>Filtrando por stock bajo</Text>
           <TouchableOpacity onPress={() => setFilterLowStock(false)}>
@@ -136,7 +204,13 @@ export default function ProductsListScreen() {
             return (
               <TouchableOpacity
                 style={styles.productCard}
-                onPress={() => router.push(`/(app)/products/${item.id}` as any)}
+                onPress={() => {
+                  if (viewTrash) {
+                    handleRestoreProduct(item.id, item.name);
+                  } else {
+                    router.push(`/(app)/products/${item.id}` as any);
+                  }
+                }}
                 activeOpacity={0.7}
               >
                 <View style={styles.productInfo}>
@@ -150,7 +224,7 @@ export default function ProductsListScreen() {
                   <Text style={styles.productStock}>
                     Stock: <Text style={styles.stockValue}>{item.stock}</Text>
                   </Text>
-                  {isLowStock && (
+                  {!viewTrash && isLowStock && (
                     <View style={styles.lowStockBadge}>
                       <Text style={styles.lowStockBadgeText}>Bajo stock</Text>
                     </View>
@@ -162,7 +236,9 @@ export default function ProductsListScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>
-                No se encontraron productos. Crea tu primer producto pulsando el botón "+ Nuevo" arriba.
+                {viewTrash
+                  ? "La papelera está vacía."
+                  : "No se encontraron productos. Crea tu primer producto pulsando el botón \"+ Nuevo\" arriba."}
               </Text>
             </View>
           }
@@ -223,6 +299,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#6D28D9",
     fontWeight: "600",
+  },
+  headerPlaceholder: {
+    width: 50,
   },
   searchContainer: {
     paddingHorizontal: 20,
@@ -362,6 +441,33 @@ const styles = StyleSheet.create({
   loadMoreText: {
     color: "#6D28D9",
     fontSize: 15,
+    fontWeight: "600",
+  },
+  filterChipsRow: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  chipButton: {
+    backgroundColor: "#F7F5FB",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 10,
+    borderWidth: 1,
+    borderColor: "#EAE5F5",
+  },
+  chipActive: {
+    backgroundColor: "#6D28D9",
+    borderColor: "#6D28D9",
+  },
+  chipText: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  chipTextActive: {
+    color: "#FFFFFF",
     fontWeight: "600",
   },
 });

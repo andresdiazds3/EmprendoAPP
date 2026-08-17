@@ -42,7 +42,7 @@ export class ProductsRepository {
 
     const where: Prisma.ProductWhereInput = {
       userId,
-      deletedAt: null,
+      deletedAt: filters.trash ? { not: null } : null,
     };
 
     if (idFilter !== undefined) {
@@ -99,6 +99,24 @@ export class ProductsRepository {
     return prisma.product.update({
       where: { id: productId },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  // Obtiene un producto perteneciente al usuario, incluso si está eliminado
+  async findByIdIncludingDeleted(userId: string, productId: string) {
+    return prisma.product.findFirst({
+      where: {
+        id: productId,
+        userId,
+      },
+    });
+  }
+
+  // Restaura un producto borrado lógicamente
+  async restore(productId: string) {
+    return prisma.product.update({
+      where: { id: productId },
+      data: { deletedAt: null },
     });
   }
 }

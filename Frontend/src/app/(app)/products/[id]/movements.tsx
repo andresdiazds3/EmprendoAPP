@@ -233,7 +233,7 @@ export default function ProductMovementsScreen() {
                       style={styles.input}
                       placeholder={currentType === "RESTOCK" ? "Ej. 10" : "Ej. -3"}
                       placeholderTextColor="#6B7280"
-                      keyboardType="numeric"
+                      keyboardType={currentType === "ADJUSTMENT" ? "numbers-and-punctuation" : "numeric"}
                       onBlur={onBlur}
                       onChangeText={onChange}
                       value={value?.toString()}
