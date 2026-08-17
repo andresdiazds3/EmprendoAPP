@@ -44,6 +44,24 @@ export default function HomeScreen() {
           <Text style={styles.primaryButtonText}>Gestionar Productos</Text>
         </TouchableOpacity>
 
+        {/* Botón para ir a ventas */}
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.push("/(app)/sales" as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.primaryButtonText}>Gestionar Ventas</Text>
+        </TouchableOpacity>
+
+        {/* Botón para ir a gastos */}
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.push("/(app)/expenses" as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.primaryButtonText}>Gestionar Gastos</Text>
+        </TouchableOpacity>
+
         {/* Botón de Logout como link secundario abajo */}
         <TouchableOpacity
           style={styles.logoutButton}
