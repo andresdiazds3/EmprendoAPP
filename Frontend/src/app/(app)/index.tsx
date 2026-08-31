@@ -62,6 +62,15 @@ export default function HomeScreen() {
           <Text style={styles.primaryButtonText}>Gestionar Gastos</Text>
         </TouchableOpacity>
 
+        {/* Botón para ir a reportes */}
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => router.push("/(app)/reports" as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.primaryButtonText}>Ver Reportes y Utilidades</Text>
+        </TouchableOpacity>
+
         {/* Botón de Logout como link secundario abajo */}
         <TouchableOpacity
           style={styles.logoutButton}
