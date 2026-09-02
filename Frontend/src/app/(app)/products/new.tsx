@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "../../../lib/products.api";
 import { ProductForm, ProductFormValues } from "../../../components/ProductForm";
+import { queryKeys } from "../../../lib/queryKeys";
 
 export default function NewProductScreen() {
   const router = useRouter();
@@ -14,8 +15,8 @@ export default function NewProductScreen() {
   const mutation = useMutation({
     mutationFn: (values: ProductFormValues) => productsApi.create(values),
     onSuccess: () => {
-      // Invalida la lista para forzar recarga al volver
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       router.back();
     },
     onError: (error: any) => {

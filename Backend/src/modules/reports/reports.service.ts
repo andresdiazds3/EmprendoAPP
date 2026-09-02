@@ -10,9 +10,12 @@ export class ReportsService {
     const fromDate = new Date(dto.from);
     const toDate = new Date(dto.to);
     const data = await reportsRepository.getUtilidad(userId, fromDate, toDate);
-    const utilidad = data.ingresos - data.costoVenta - data.gastos;
+    const utilidad = data.ingresos - data.gastos;
     return {
-      ...data,
+      ingresos: data.ingresos,
+      margenBrutoReferencial: data.costoVenta,
+      costoVenta: data.costoVenta, // mantenido por retrocompatibilidad
+      gastos: data.gastos,
       utilidad,
       from: dto.from,
       to: dto.to,
@@ -83,13 +86,12 @@ export class ReportsService {
       { header: "Concepto", key: "concepto", width: 25 },
       { header: "Valor", key: "valor", width: 20 },
     ];
-    resumenSheet.getRow(1).font = { bold: true };
-    
-    const { ingresos, costoVenta, gastos, utilidad } = await this.getUtilidad(userId, dto);
+    const { ingresos, margenBrutoReferencial, gastos, utilidad } = await this.getUtilidad(userId, dto);
     resumenSheet.addRow({ concepto: "Ingresos", valor: ingresos });
-    resumenSheet.addRow({ concepto: "Costo de Venta", valor: costoVenta });
+    resumenSheet.addRow({ concepto: "Margen bruto referencial (no descontado de la utilidad)", valor: margenBrutoReferencial });
     resumenSheet.addRow({ concepto: "Gastos", valor: gastos });
     resumenSheet.addRow({ concepto: "Utilidad Neta", valor: utilidad });
+    resumenSheet.addRow({ concepto: "Nota", valor: "La utilidad se calcula como Ingresos - Gastos. El margen bruto es solo referencial." });
     
     resumenSheet.getColumn("valor").numFmt = "#,##0.00";
 

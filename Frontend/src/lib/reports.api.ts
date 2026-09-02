@@ -1,11 +1,11 @@
 import { api } from "./api";
-import { documentDirectory, downloadAsync } from "expo-file-system/legacy";
-import * as SecureStore from "expo-secure-store";
+import { Buffer } from "buffer";
 
 const baseURL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 export interface UtilidadReport {
   ingresos: number;
+  margenBrutoReferencial?: number;
   costoVenta: number;
   gastos: number;
   utilidad: number;
@@ -63,21 +63,15 @@ export const reportsApi = {
     return response.data.data;
   },
 
-  // Descarga nativa del reporte de Excel
-  exportReport: async (from: string, to: string) => {
-    const token = await SecureStore.getItemAsync("token");
-    const downloadUrl = `${baseURL}/api/reports/export?from=${from}&to=${to}`;
-    const fileUri = `${documentDirectory}reporte-emprendo-${from}-a-${to}.xlsx`;
-
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const result = await downloadAsync(downloadUrl, fileUri, {
-      headers,
+  // Descarga nativa del reporte de Excel convirtiendo arraybuffer a base64
+  exportReport: async (from: string, to: string): Promise<string> => {
+    const response = await api.get("/api/reports/export", {
+      params: { from, to },
+      responseType: "arraybuffer",
+      transformResponse: [(data) => data],
     });
 
-    return result.uri;
+    const base64 = Buffer.from(response.data, "binary").toString("base64");
+    return base64;
   },
 };

@@ -13,15 +13,18 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { productsApi } from "../../../lib/products.api";
+import { productsApi, Product } from "../../../lib/products.api";
 import { salesApi } from "../../../lib/sales.api";
+import { queryKeys } from "../../../lib/queryKeys";
 
 interface CartItem {
   productId: string;
   name: string;
   price: number;
+  cost: number;
   quantity: number;
   availableStock: number;
+  ventaBajoCosto?: boolean;
 }
 
 // Hook simple para debounce
@@ -50,7 +53,7 @@ export default function NewSaleScreen() {
 
   // Consulta de productos para la búsqueda
   const { data: searchResults, isLoading: isLoadingSearch } = useQuery({
-    queryKey: ["products", "search", debouncedSearch],
+    queryKey: queryKeys.products.list({ search: debouncedSearch, pageSize: 5 }),
     queryFn: () => productsApi.list({ search: debouncedSearch, pageSize: 5 }),
     enabled: debouncedSearch.trim().length >= 2,
   });
@@ -62,10 +65,10 @@ export default function NewSaleScreen() {
     onSuccess: () => {
       setCart([]);
       setServerError(null);
-      // Invalida el cache de productos y ventas para recargar la UI
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["sales"] });
-      // Redirige al historial de ventas
+      // Invalida cache de ventas, productos, alertas de bajo stock y reportes
+      queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       router.replace("/(app)/sales" as any);
     },
     onError: (error: any) => {
@@ -78,19 +81,33 @@ export default function NewSaleScreen() {
   });
 
   // Agregar producto al carrito
-  const handleAddProduct = (productId: string, name: string, price: number, availableStock: number) => {
+  const handleAddProduct = (item: Product) => {
     setServerError(null);
+    const numPrice = parseFloat(item.price);
+    const numCost = parseFloat(item.cost);
+    const isBelowCost = item.ventaBajoCosto ?? (numPrice < numCost);
+
     setCart((prevCart) => {
-      const existing = prevCart.find((i) => i.productId === productId);
+      const existing = prevCart.find((i) => i.productId === item.id);
       if (existing) {
         return prevCart.map((i) =>
-          i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i
+          i.productId === item.id ? { ...i, quantity: i.quantity + 1 } : i
         );
       } else {
-        return [...prevCart, { productId, name, price, quantity: 1, availableStock }];
+        return [
+          ...prevCart,
+          {
+            productId: item.id,
+            name: item.name,
+            price: numPrice,
+            cost: numCost,
+            quantity: 1,
+            availableStock: item.stock,
+            ventaBajoCosto: isBelowCost,
+          },
+        ];
       }
     });
-    // Limpia el buscador al añadir
     setSearchQuery("");
   };
 
@@ -170,9 +187,7 @@ export default function NewSaleScreen() {
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.resultItem}
-                    onPress={() =>
-                      handleAddProduct(item.id, item.name, parseFloat(item.price), item.stock)
-                    }
+                    onPress={() => handleAddProduct(item)}
                     activeOpacity={0.7}
                   >
                     <View style={styles.resultTextContainer}>
@@ -241,6 +256,12 @@ export default function NewSaleScreen() {
                         </TouchableOpacity>
                       </View>
                     </View>
+
+                    {item.ventaBajoCosto && (
+                      <View style={styles.amberBadge}>
+                        <Text style={styles.amberBadgeText}>⚠️ Venta por debajo del precio base</Text>
+                      </View>
+                    )}
 
                     {/* Advertencia de stock */}
                     {isOutOfStock && (
@@ -495,6 +516,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 6,
     fontWeight: "500",
+  },
+  amberBadge: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginTop: 6,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  amberBadgeText: {
+    color: "#D97706",
+    fontSize: 11,
+    fontWeight: "600",
   },
   emptyCart: {
     paddingVertical: 64,

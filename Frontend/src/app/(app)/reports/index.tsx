@@ -15,9 +15,14 @@ import { useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LineChart } from "react-native-chart-kit";
-import * as FileSystem from "expo-file-system";
+import { documentDirectory, writeAsStringAsync, EncodingType } from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { reportsApi } from "../../../lib/reports.api";
+import { useNavigation } from "@react-navigation/native";
+import { DrawerNavigationProp } from "@react-navigation/drawer";
+import { Feather } from "@expo/vector-icons";
+import { queryKeys } from "../../../lib/queryKeys";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -70,6 +75,7 @@ const formatPeriodLabel = (isoStr: string, groupBy: "day" | "month" | "year") =>
 
 export default function ReportsDashboard() {
   const router = useRouter();
+  const navigation = useNavigation<DrawerNavigationProp<any>>();
   const [preset, setPreset] = useState("Este mes");
   const [customFrom, setCustomFrom] = useState(new Date());
   const [customTo, setCustomTo] = useState(new Date());
@@ -99,31 +105,41 @@ export default function ReportsDashboard() {
   const groupBy: "day" | "month" | "year" = diffDays <= 31 ? "day" : diffDays <= 366 ? "month" : "year";
 
   // Queries
-  const { data: utilidad, isLoading: isLoadingUtilidad } = useQuery({
-    queryKey: ["reports", "utilidad", fromParam, toParam],
+  const { data: utilidad, isLoading: isLoadingUtilidad, refetch: refetchUtilidad } = useQuery({
+    queryKey: queryKeys.reports.utilidad({ from: fromParam, to: toParam }),
     queryFn: () => reportsApi.getUtilidad({ from: fromParam, to: toParam }),
   });
 
-  const { data: comparativo, isLoading: isLoadingComparativo } = useQuery({
-    queryKey: ["reports", "comparativo", fromParam, toParam, groupBy],
+  const { data: comparativo, isLoading: isLoadingComparativo, refetch: refetchComparativo } = useQuery({
+    queryKey: queryKeys.reports.comparativo({ from: fromParam, to: toParam, groupBy }),
     queryFn: () => reportsApi.getComparativo({ from: fromParam, to: toParam, groupBy }),
   });
 
-  const { data: topProducts, isLoading: isLoadingTop } = useQuery({
-    queryKey: ["reports", "top-productos", fromParam, toParam],
+  const { data: topProducts, isLoading: isLoadingTop, refetch: refetchTop } = useQuery({
+    queryKey: queryKeys.reports.topProductos({ from: fromParam, to: toParam, limit: 5, orderBy: "revenue" }),
     queryFn: () => reportsApi.getTopProductos({ from: fromParam, to: toParam, limit: 5, orderBy: "revenue" }),
   });
+
+  useRefetchOnFocus(refetchUtilidad);
+  useRefetchOnFocus(refetchComparativo);
+  useRefetchOnFocus(refetchTop);
 
   // Handler de exportación a Excel
   const handleExport = async () => {
     setIsExporting(true);
     setExportError(null);
     try {
-      const localUri = await reportsApi.exportReport(fromParam, toParam);
+      const base64 = await reportsApi.exportReport(fromParam, toParam);
       
+      const sanitizedFrom = fromParam.replace(/:/g, "-");
+      const sanitizedTo = toParam.replace(/:/g, "-");
+      const fileUri = `${documentDirectory}reporte-emprendo-${sanitizedFrom}-a-${sanitizedTo}.xlsx`;
+
+      await writeAsStringAsync(fileUri, base64, { encoding: EncodingType.Base64 });
+
       // Abrir diálogo nativo para compartir/guardar el archivo
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(localUri, {
+        await Sharing.shareAsync(fileUri, {
           mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           dialogTitle: "Reporte de Emprendo",
           UTI: "com.microsoft.excel.xlsx",
@@ -151,8 +167,8 @@ export default function ReportsDashboard() {
     <SafeAreaView style={styles.safeArea}>
       {/* Cabecera */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Inicio</Text>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()} activeOpacity={0.7}>
+          <Feather name="menu" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Reportes</Text>
         <TouchableOpacity
@@ -283,14 +299,19 @@ export default function ReportsDashboard() {
               </View>
 
               <View style={styles.rowMetric}>
-                <Text style={styles.metricLabel}>(-) Costo de Venta</Text>
-                <Text style={styles.metricVal}>${utilidad.costoVenta.toFixed(2)}</Text>
-              </View>
-
-              <View style={styles.rowMetric}>
                 <Text style={styles.metricLabel}>(-) Gastos Operativos</Text>
                 <Text style={styles.metricVal}>${utilidad.gastos.toFixed(2)}</Text>
               </View>
+
+              <View style={styles.rowMetricRef}>
+                <Text style={styles.metricLabelRef}>(ℹ️) Margen Bruto (referencial)</Text>
+                <Text style={styles.metricValRef}>
+                  ${(utilidad.margenBrutoReferencial ?? utilidad.costoVenta).toFixed(2)}
+                </Text>
+              </View>
+              <Text style={styles.metricRefSubtext}>
+                Este costo base es solo informativo y no se descuenta automáticamente de la utilidad (Ingresos - Gastos).
+              </Text>
             </View>
           )}
         </View>
@@ -412,6 +433,10 @@ const styles = StyleSheet.create({
     height: 56,
     borderBottomWidth: 1,
     borderBottomColor: "#F7F5FB",
+  },
+  menuButton: {
+    paddingVertical: 8,
+    paddingRight: 8,
   },
   backButton: {
     paddingVertical: 8,
@@ -564,6 +589,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#1A1A1A",
+  },
+  rowMetricRef: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#F7F5FB",
+  },
+  metricLabelRef: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  metricValRef: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  metricRefSubtext: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginTop: 2,
+    lineHeight: 14,
   },
   emptyState: {
     paddingVertical: 32,

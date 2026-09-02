@@ -14,6 +14,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "../../../lib/products.api";
 import { ProductForm, ProductFormValues } from "../../../components/ProductForm";
+import { queryKeys } from "../../../lib/queryKeys";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 export default function EditProductScreen() {
   const router = useRouter();
@@ -22,17 +24,20 @@ export default function EditProductScreen() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   // Consulta los detalles del producto actual
-  const { data: product, isLoading: isLoadingProduct } = useQuery({
-    queryKey: ["products", id],
+  const { data: product, isLoading: isLoadingProduct, refetch } = useQuery({
+    queryKey: queryKeys.products.detail(id),
     queryFn: () => productsApi.getById(id),
     enabled: !!id,
   });
+
+  useRefetchOnFocus(refetch);
 
   // Mutación para actualizar
   const updateMutation = useMutation({
     mutationFn: (values: ProductFormValues) => productsApi.update(id, values),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       router.back();
     },
     onError: (error: any) => {
@@ -48,7 +53,8 @@ export default function EditProductScreen() {
   const deleteMutation = useMutation({
     mutationFn: () => productsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       // Regresa a la lista principal
       router.replace("/(app)/products" as any);
     },

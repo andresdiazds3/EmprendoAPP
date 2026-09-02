@@ -11,17 +11,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { salesApi } from "../../../lib/sales.api";
+import { queryKeys } from "../../../lib/queryKeys";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 export default function SaleDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   // Consultar detalles de la venta
-  const { data: sale, isLoading } = useQuery({
-    queryKey: ["sales", id],
+  const { data: sale, isLoading, refetch } = useQuery({
+    queryKey: queryKeys.sales.detail(id),
     queryFn: () => salesApi.getById(id),
     enabled: !!id,
   });
+
+  useRefetchOnFocus(refetch);
 
   return (
     <SafeAreaView style={styles.safeArea}>

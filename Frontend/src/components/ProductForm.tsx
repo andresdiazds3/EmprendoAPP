@@ -53,6 +53,7 @@ export function ProductForm({
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors, isValid },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema) as any,
@@ -64,6 +65,10 @@ export function ProductForm({
     },
     mode: "onChange",
   });
+
+  const priceVal = parseFloat(watch("price") as any || 0);
+  const costVal = parseFloat(watch("cost") as any || 0);
+  const isBelowCost = priceVal > 0 && costVal > 0 && priceVal < costVal;
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -128,7 +133,10 @@ export function ProductForm({
 
       {/* Campo: Costo */}
       <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Costo unitario ($)</Text>
+        <Text style={styles.label}>Precio base / costo de producción ($)</Text>
+        <Text style={styles.helperText}>
+          Este valor es solo de referencia — no se descuenta automáticamente de tus utilidades. Registra tus gastos de insumos en la sección de Gastos.
+        </Text>
         <Controller
           control={control}
           name="cost"
@@ -151,6 +159,15 @@ export function ProductForm({
         />
         {errors.cost && <Text style={styles.errorText}>{errors.cost.message}</Text>}
       </View>
+
+      {/* Banner Informativo Ámbar si precio < costo */}
+      {isBelowCost && (
+        <View style={styles.amberBanner}>
+          <Text style={styles.amberBannerText}>
+            ⚠️ Estás vendiendo este producto por debajo de su precio base de producción.
+          </Text>
+        </View>
+      )}
 
       {/* Campo: Stock Mínimo */}
       <View style={styles.fieldContainer}>
@@ -247,7 +264,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "500",
     color: "#1A1A1A",
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  amberBanner: {
+    backgroundColor: "#FEF3C7",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#FDE68A",
+  },
+  amberBannerText: {
+    color: "#D97706",
+    fontSize: 13,
+    fontWeight: "500",
+    lineHeight: 18,
   },
   input: {
     backgroundColor: "#F7F5FB",

@@ -18,6 +18,8 @@ import { z } from "zod";
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { inventoryApi } from "../../../../lib/inventory.api";
 import { productsApi } from "../../../../lib/products.api";
+import { queryKeys } from "../../../../lib/queryKeys";
+import { useRefetchOnFocus } from "../../../../hooks/useRefetchOnFocus";
 
 // Esquema Zod dinámico para el movimiento de inventario
 const movementSchema = z
@@ -63,8 +65,8 @@ export default function ProductMovementsScreen() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   // Consulta el producto para mostrar el nombre e invalidar tras cambios
-  const { data: product } = useQuery({
-    queryKey: ["products", id],
+  const { data: product, refetch: refetchProduct } = useQuery({
+    queryKey: queryKeys.products.detail(id),
     queryFn: () => productsApi.getById(id),
     enabled: !!id,
   });
@@ -76,8 +78,9 @@ export default function ProductMovementsScreen() {
     hasNextPage,
     isFetchingNextPage,
     isLoading: isLoadingKardex,
+    refetch: refetchMovements,
   } = useInfiniteQuery({
-    queryKey: ["movements", id],
+    queryKey: queryKeys.inventory.movements(id),
     queryFn: ({ pageParam = 1 }) =>
       inventoryApi.listMovements(id, { page: pageParam, pageSize: 20 }),
     getNextPageParam: (lastPage) =>
@@ -85,6 +88,9 @@ export default function ProductMovementsScreen() {
     initialPageParam: 1,
     enabled: !!id,
   });
+
+  useRefetchOnFocus(refetchProduct);
+  useRefetchOnFocus(refetchMovements);
 
   const movements = data?.pages.flatMap((page) => page.items) || [];
 
@@ -122,9 +128,10 @@ export default function ProductMovementsScreen() {
         quantity: "" as any,
         reason: "",
       });
-      // Invalida las queries del producto y del kardex para refrescar el stock en la interfaz
-      queryClient.invalidateQueries({ queryKey: ["products", id] });
-      queryClient.invalidateQueries({ queryKey: ["movements", id] });
+      // Invalida las queries del producto, kardex, bajo stock y reportes
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
     },
     onError: (error: any) => {
       console.error("Error al registrar movimiento:", error);

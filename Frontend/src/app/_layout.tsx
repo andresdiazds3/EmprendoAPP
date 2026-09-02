@@ -1,27 +1,45 @@
 import React, { useEffect } from "react";
 import { Slot, useRouter, useSegments } from "expo-router";
-import { ActivityIndicator, View, StyleSheet } from "react-native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ActivityIndicator, View, StyleSheet, AppState, Platform } from "react-native";
+import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 import { AuthProvider, useAuth } from "../context/AuthContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 30, // 30 segundos
+      refetchOnMount: true,
+      retry: 1,
+    },
+  },
+});
+
+function useReactQueryFocusManager() {
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (status) => {
+      if (Platform.OS !== "web") {
+        focusManager.setFocused(status === "active");
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+}
 
 function InitialLayout() {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
+  useReactQueryFocusManager();
+
   useEffect(() => {
     if (isLoading) return;
 
-    // Detectamos si el usuario se encuentra dentro del grupo (auth)
     const inAuthGroup = segments[0] === "(auth)";
 
     if (!user && !inAuthGroup) {
-      // No está autenticado y no está en login/registro -> Mandar a Login
       router.replace("/(auth)/login");
     } else if (user && inAuthGroup) {
-      // Sí está autenticado y está en login/registro -> Mandar a la pantalla protegida
       router.replace("/(app)");
     }
   }, [user, isLoading, segments]);

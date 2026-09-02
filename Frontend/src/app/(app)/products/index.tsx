@@ -10,10 +10,15 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "../../../lib/products.api";
 import { inventoryApi } from "../../../lib/inventory.api";
+import { useNavigation } from "@react-navigation/native";
+import { DrawerNavigationProp } from "@react-navigation/drawer";
+import { Feather } from "@expo/vector-icons";
+import { queryKeys } from "../../../lib/queryKeys";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 // Hook simple para debouncear búsquedas
 function useDebounce<T>(value: T, delay: number): T {
@@ -32,17 +37,25 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export default function ProductsListScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ lowStock?: string }>();
+  const navigation = useNavigation<DrawerNavigationProp<any>>();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterLowStock, setFilterLowStock] = useState(false);
+  const [filterLowStock, setFilterLowStock] = useState(params.lowStock === "true");
   const [viewTrash, setViewTrash] = useState(false);
+
+  useEffect(() => {
+    if (params.lowStock === "true") {
+      setFilterLowStock(true);
+      setViewTrash(false);
+    }
+  }, [params.lowStock]);
 
   const debouncedSearch = useDebounce(searchQuery, 400);
 
   // Consulta para el conteo de bajo stock (banner superior)
-  // Solo se activa si el usuario no tiene una búsqueda de texto activa
   const { data: lowStockAlerts } = useQuery({
-    queryKey: ["inventory", "low-stock-count"],
+    queryKey: queryKeys.products.lowStock,
     queryFn: () => inventoryApi.getLowStockAlerts(),
     enabled: !debouncedSearch && !viewTrash,
   });
@@ -56,7 +69,7 @@ export default function ProductsListScreen() {
     isLoading,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["products", debouncedSearch, filterLowStock, viewTrash],
+    queryKey: queryKeys.products.list({ search: debouncedSearch, lowStock: filterLowStock, trash: viewTrash }),
     queryFn: ({ pageParam = 1 }) =>
       productsApi.list({
         page: pageParam,
@@ -70,12 +83,14 @@ export default function ProductsListScreen() {
     initialPageParam: 1,
   });
 
+  useRefetchOnFocus(refetch);
+
   // Mutación para restaurar producto de la papelera
   const restoreMutation = useMutation({
     mutationFn: (productId: string) => productsApi.restore(productId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["inventory", "low-stock-count"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       Alert.alert("Éxito", "El producto ha sido restaurado.");
     },
     onError: (error: any) => {
@@ -108,10 +123,9 @@ export default function ProductsListScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Cabecera */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Inicio</Text>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()} activeOpacity={0.7}>
+          <Feather name="menu" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{viewTrash ? "Papelera de Productos" : "Mis Productos"}</Text>
         {!viewTrash ? (
@@ -276,6 +290,10 @@ const styles = StyleSheet.create({
     height: 56,
     borderBottomWidth: 1,
     borderBottomColor: "#F7F5FB",
+  },
+  menuButton: {
+    paddingVertical: 8,
+    paddingRight: 8,
   },
   backButton: {
     paddingVertical: 8,

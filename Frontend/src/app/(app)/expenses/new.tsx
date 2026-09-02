@@ -18,6 +18,7 @@ import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { expensesApi } from "../../../lib/expenses.api";
+import { queryKeys } from "../../../lib/queryKeys";
 
 const expenseSchema = z.object({
   concept: z
@@ -64,7 +65,8 @@ export default function NewExpenseScreen() {
         expenseDate: values.expenseDate.toISOString(),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       router.back();
     },
     onError: (error: any) => {

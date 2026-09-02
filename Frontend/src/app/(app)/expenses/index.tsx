@@ -13,9 +13,15 @@ import { useRouter } from "expo-router";
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { expensesApi } from "../../../lib/expenses.api";
+import { useNavigation } from "@react-navigation/native";
+import { DrawerNavigationProp } from "@react-navigation/drawer";
+import { Feather } from "@expo/vector-icons";
+import { queryKeys } from "../../../lib/queryKeys";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 export default function ExpensesListScreen() {
   const router = useRouter();
+  const navigation = useNavigation<DrawerNavigationProp<any>>();
   const queryClient = useQueryClient();
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
@@ -26,7 +32,7 @@ export default function ExpensesListScreen() {
   const fromParam = fromDate ? new Date(fromDate.setHours(0, 0, 0, 0)).toISOString() : undefined;
   const toParam = toDate ? new Date(toDate.setHours(23, 59, 59, 999)).toISOString() : undefined;
 
-  // Query infinita para listar gastos paginados
+  // Query infinita para listar gastos
   const {
     data,
     fetchNextPage,
@@ -35,7 +41,7 @@ export default function ExpensesListScreen() {
     isLoading,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["expenses", fromParam, toParam],
+    queryKey: queryKeys.expenses.list({ from: fromParam, to: toParam }),
     queryFn: ({ pageParam = 1 }) =>
       expensesApi.list({
         page: pageParam,
@@ -48,11 +54,14 @@ export default function ExpensesListScreen() {
     initialPageParam: 1,
   });
 
+  useRefetchOnFocus(refetch);
+
   // Mutación para borrar gasto directamente de la lista
   const deleteMutation = useMutation({
     mutationFn: (id: string) => expensesApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       Alert.alert("Éxito", "El gasto ha sido eliminado.");
     },
     onError: (error: any) => {
@@ -88,8 +97,8 @@ export default function ExpensesListScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Cabecera */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Inicio</Text>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()} activeOpacity={0.7}>
+          <Feather name="menu" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mis Gastos</Text>
         <TouchableOpacity
@@ -255,6 +264,10 @@ const styles = StyleSheet.create({
     height: 56,
     borderBottomWidth: 1,
     borderBottomColor: "#F7F5FB",
+  },
+  menuButton: {
+    paddingVertical: 8,
+    paddingRight: 8,
   },
   backButton: {
     paddingVertical: 8,

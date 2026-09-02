@@ -19,6 +19,8 @@ import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { expensesApi } from "../../../lib/expenses.api";
+import { queryKeys } from "../../../lib/queryKeys";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 const expenseSchema = z.object({
   concept: z
@@ -41,11 +43,13 @@ export default function EditExpenseScreen() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   // Consultar el gasto existente
-  const { data: expense, isLoading: isLoadingExpense } = useQuery({
-    queryKey: ["expenses", id],
+  const { data: expense, isLoading: isLoadingExpense, refetch } = useQuery({
+    queryKey: queryKeys.expenses.detail(id),
     queryFn: () => expensesApi.getById(id),
     enabled: !!id,
   });
+
+  useRefetchOnFocus(refetch);
 
   const {
     control,
@@ -81,8 +85,8 @@ export default function EditExpenseScreen() {
         expenseDate: values.expenseDate.toISOString(),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["expenses", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       router.back();
     },
     onError: (error: any) => {
@@ -98,7 +102,8 @@ export default function EditExpenseScreen() {
   const deleteMutation = useMutation({
     mutationFn: () => expensesApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
       router.back();
     },
     onError: (error: any) => {

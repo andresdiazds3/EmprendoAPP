@@ -7,6 +7,7 @@ export interface Product {
   cost: string;  // El backend devuelve Decimal serializado como string
   stock: number;
   minStock: number;
+  ventaBajoCosto?: boolean;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;

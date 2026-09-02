@@ -13,9 +13,15 @@ import { useRouter } from "expo-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { salesApi } from "../../../lib/sales.api";
+import { useNavigation } from "@react-navigation/native";
+import { DrawerNavigationProp } from "@react-navigation/drawer";
+import { Feather } from "@expo/vector-icons";
+import { queryKeys } from "../../../lib/queryKeys";
+import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 export default function SalesHistoryScreen() {
   const router = useRouter();
+  const navigation = useNavigation<DrawerNavigationProp<any>>();
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
   const [fromDate, setFromDate] = useState<Date | null>(null);
@@ -25,7 +31,7 @@ export default function SalesHistoryScreen() {
   const fromParam = fromDate ? new Date(fromDate.setHours(0, 0, 0, 0)).toISOString() : undefined;
   const toParam = toDate ? new Date(toDate.setHours(23, 59, 59, 999)).toISOString() : undefined;
 
-  // Query infinita para el historial de ventas paginado
+  // Query infinita para listar historial de ventas
   const {
     data,
     fetchNextPage,
@@ -34,7 +40,7 @@ export default function SalesHistoryScreen() {
     isLoading,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ["sales", fromParam, toParam],
+    queryKey: queryKeys.sales.list({ from: fromParam, to: toParam }),
     queryFn: ({ pageParam = 1 }) =>
       salesApi.list({
         page: pageParam,
@@ -47,10 +53,7 @@ export default function SalesHistoryScreen() {
     initialPageParam: 1,
   });
 
-  // Forzar recarga al volver a enfocar la pantalla
-  useEffect(() => {
-    refetch();
-  }, []);
+  useRefetchOnFocus(refetch);
 
   const sales = data?.pages.flatMap((page) => page.items) || [];
 
@@ -58,8 +61,8 @@ export default function SalesHistoryScreen() {
     <SafeAreaView style={styles.safeArea}>
       {/* Cabecera */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>← Inicio</Text>
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer()} activeOpacity={0.7}>
+          <Feather name="menu" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Historial de Ventas</Text>
         <TouchableOpacity
@@ -220,6 +223,10 @@ const styles = StyleSheet.create({
     height: 56,
     borderBottomWidth: 1,
     borderBottomColor: "#F7F5FB",
+  },
+  menuButton: {
+    paddingVertical: 8,
+    paddingRight: 8,
   },
   backButton: {
     paddingVertical: 8,
