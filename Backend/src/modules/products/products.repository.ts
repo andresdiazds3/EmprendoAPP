@@ -119,6 +119,20 @@ export class ProductsRepository {
       data: { deletedAt: null },
     });
   }
+
+  // Busca un producto por nombre (búsqueda case-insensitive por coincidencia parcial)
+  async findByName(userId: string, name: string) {
+    return prisma.product.findFirst({
+      where: {
+        userId,
+        name: {
+          contains: name,
+          mode: "insensitive",
+        },
+        deletedAt: null,
+      },
+    });
+  }
 }
 
 export const productsRepository = new ProductsRepository();

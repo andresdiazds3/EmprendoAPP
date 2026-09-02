@@ -10,6 +10,7 @@ import { inventoryRoutes } from "./modules/inventory/inventory.routes";
 import { salesRoutes } from "./modules/sales/sales.routes";
 import { expensesRoutes } from "./modules/expenses/expenses.routes";
 import { reportsRoutes } from "./modules/reports/reports.routes";
+import { aiRoutes } from "./modules/ai/ai.routes";
 
 export const app = express();
 
@@ -28,6 +29,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/expenses", expensesRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Ruta no encontrada: ${req.originalUrl}` });

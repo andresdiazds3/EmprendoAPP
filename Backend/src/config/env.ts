@@ -13,7 +13,9 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
-  OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().min(1, "OPENROUTER_API_KEY es requerida"),
+  OPENROUTER_MODELS: z.string().default("openai/gpt-oss-20b:free,openrouter/free"),
+  AI_MAX_TOOL_ITERATIONS: z.coerce.number().default(5),
   AI_DEFAULT_PROVIDER: z.enum(["openai", "gemini", "groq", "openrouter"]).default("openai"),
 
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),

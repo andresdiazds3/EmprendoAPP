@@ -58,6 +58,12 @@ export class ProductsService {
     const restored = await productsRepository.restore(productId);
     return formatProduct(restored);
   }
+
+  // Busca un producto por nombre para consultas inteligentes
+  async findByName(userId: string, name: string) {
+    const product = await productsRepository.findByName(userId, name);
+    return product ? formatProduct(product) : null;
+  }
 }
 
 export const productsService = new ProductsService();

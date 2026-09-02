@@ -27,4 +27,9 @@ export const queryKeys = {
     all: ["inventory"] as const,
     movements: (productId: string, params?: object) => ["inventory", "movements", productId, params || {}] as const,
   },
+  ai: {
+    all: ["ai"] as const,
+    sessions: ["ai", "sessions"] as const,
+    messages: (sessionId: string) => ["ai", "messages", sessionId] as const,
+  },
 };
