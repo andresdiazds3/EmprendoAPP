@@ -11,15 +11,13 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { LineChart } from "react-native-chart-kit";
 import { documentDirectory, writeAsStringAsync, EncodingType } from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import { reportsApi } from "../../../lib/reports.api";
-import { useNavigation } from "@react-navigation/native";
-import { DrawerNavigationProp } from "@react-navigation/drawer";
 import { Feather } from "@expo/vector-icons";
 import { queryKeys } from "../../../lib/queryKeys";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
@@ -75,7 +73,7 @@ const formatPeriodLabel = (isoStr: string, groupBy: "day" | "month" | "year") =>
 
 export default function ReportsDashboard() {
   const router = useRouter();
-  const navigation = useNavigation<DrawerNavigationProp<any>>();
+  const navigation = useNavigation<any>();
   const [preset, setPreset] = useState("Este mes");
   const [customFrom, setCustomFrom] = useState(new Date());
   const [customTo, setCustomTo] = useState(new Date());

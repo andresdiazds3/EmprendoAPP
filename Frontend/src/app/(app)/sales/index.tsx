@@ -9,19 +9,17 @@ import {
   Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { salesApi } from "../../../lib/sales.api";
-import { useNavigation } from "@react-navigation/native";
-import { DrawerNavigationProp } from "@react-navigation/drawer";
 import { Feather } from "@expo/vector-icons";
 import { queryKeys } from "../../../lib/queryKeys";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
 export default function SalesHistoryScreen() {
   const router = useRouter();
-  const navigation = useNavigation<DrawerNavigationProp<any>>();
+  const navigation = useNavigation<any>();
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
   const [fromDate, setFromDate] = useState<Date | null>(null);

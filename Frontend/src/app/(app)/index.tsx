@@ -9,10 +9,8 @@ import {
   Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigation } from "@react-navigation/native";
-import { DrawerNavigationProp } from "@react-navigation/drawer";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../../context/AuthContext";
 import { productsApi } from "../../lib/products.api";
@@ -35,7 +33,7 @@ const getCurrentMonthParams = () => {
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const navigation = useNavigation<DrawerNavigationProp<any>>();
+  const navigation = useNavigation<any>();
   const { from, to } = getCurrentMonthParams();
 
   // 1. Productos activos

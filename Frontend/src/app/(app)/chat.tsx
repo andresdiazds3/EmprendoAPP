@@ -13,8 +13,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation } from "@react-navigation/native";
-import { DrawerNavigationProp } from "@react-navigation/drawer";
+import { useNavigation } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { aiApi, ChatMessageItem, ChatSessionItem } from "../../lib/ai.api";
@@ -28,7 +27,7 @@ const SUGGESTED_PROMPTS = [
 ];
 
 export default function ChatScreen() {
-  const navigation = useNavigation<DrawerNavigationProp<any>>();
+  const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
 
   const [sessionId, setSessionId] = useState<string | null>(null);
