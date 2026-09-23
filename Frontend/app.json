@@ -17,6 +17,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
+      "package": "com.emprendo.app",
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -51,10 +52,9 @@
         "projectId": "ed3ba828-221d-4832-9ef5-0b997b3873fd"
       }
     },
-    "owner": "andresdiazds3",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "owner": "andresdiazds3s-team",
+    "sdkVersion": "57.0.0",
+    "runtimeVersion": "57.0.0",
     "updates": {
       "url": "https://u.expo.dev/ed3ba828-221d-4832-9ef5-0b997b3873fd"
     }

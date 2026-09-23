@@ -1,14 +1,20 @@
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { env } from "../../config/env";
 import { AppError } from "../../core/errors";
 
-const resend = new Resend(env.RESEND_API_KEY);
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: env.GMAIL_USER,
+    pass: env.GMAIL_APP_PASSWORD,
+  },
+});
 
 export class EmailService {
   async sendPasswordResetEmail(to: string, code: string): Promise<void> {
     try {
-      const { error } = await resend.emails.send({
-        from: env.RESEND_FROM_EMAIL,
+      await transporter.sendMail({
+        from: `"Emprendo" <${env.GMAIL_USER}>`,
         to,
         subject: "Tu código para recuperar tu contraseña en Emprendo",
         html: `
@@ -28,16 +34,11 @@ export class EmailService {
           </div>
         `,
       });
-
-      if (error) {
-        console.error("Error al enviar correo con Resend:", error);
-        throw new AppError("No se pudo enviar el correo de recuperación de contraseña.", 500);
-      }
     } catch (err) {
       if (err instanceof AppError) {
         throw err;
       }
-      console.error("Excepción al enviar correo con Resend:", err);
+      console.error("Excepción al enviar correo con Gmail / Nodemailer:", err);
       throw new AppError("No se pudo enviar el correo de recuperación de contraseña.", 500);
     }
   }

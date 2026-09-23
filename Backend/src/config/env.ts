@@ -21,8 +21,8 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
 
-  RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY es requerido"),
-  RESEND_FROM_EMAIL: z.string().default("onboarding@resend.dev"),
+  GMAIL_USER: z.string().email("GMAIL_USER debe ser un correo válido"),
+  GMAIL_APP_PASSWORD: z.string().min(1, "GMAIL_APP_PASSWORD es requerida"),
   PASSWORD_RESET_CODE_EXPIRES_MIN: z.coerce.number().default(15),
 });
 
