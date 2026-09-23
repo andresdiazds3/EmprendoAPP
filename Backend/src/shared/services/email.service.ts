@@ -1,23 +1,22 @@
-import nodemailer from "nodemailer";
+import https from "node:https";
 import { env } from "../../config/env";
 import { AppError } from "../../core/errors";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: env.GMAIL_USER,
-    pass: env.GMAIL_APP_PASSWORD,
-  },
-});
-
 export class EmailService {
   async sendPasswordResetEmail(to: string, code: string): Promise<void> {
-    try {
-      await transporter.sendMail({
-        from: `"Emprendo" <${env.GMAIL_USER}>`,
-        to,
+    return new Promise((resolve, reject) => {
+      const payload = JSON.stringify({
+        sender: {
+          name: env.BREVO_SENDER_NAME || "Emprendo",
+          email: env.BREVO_SENDER_EMAIL,
+        },
+        to: [
+          {
+            email: to,
+          },
+        ],
         subject: "Tu código para recuperar tu contraseña en Emprendo",
-        html: `
+        htmlContent: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #E5E7EB; border-radius: 12px; background-color: #FFFFFF;">
             <h2 style="color: #1A1A1A; text-align: center;">Recuperación de Contraseña</h2>
             <p style="color: #6B7280; font-size: 15px; line-height: 1.5; text-align: center;">
@@ -34,14 +33,48 @@ export class EmailService {
           </div>
         `,
       });
-    } catch (err) {
-      if (err instanceof AppError) {
-        throw err;
-      }
-      console.error("Excepción al enviar correo con Gmail / Nodemailer:", err);
-      throw new AppError("No se pudo enviar el correo de recuperación de contraseña.", 500);
-    }
+
+      const options = {
+        hostname: "api.brevo.com",
+        port: 443,
+        path: "/v3/smtp/email",
+        method: "POST",
+        family: 4,
+        headers: {
+          "api-key": env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(payload),
+          Accept: "application/json",
+        },
+      };
+
+      const req = https.request(options, (res) => {
+        let responseBody = "";
+        res.on("data", (chunk) => {
+          responseBody += chunk;
+        });
+
+        res.on("end", () => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            resolve();
+          } else {
+            console.error("Error en respuesta de Brevo API:", res.statusCode, responseBody);
+            reject(new AppError("No se pudo enviar el correo de recuperación de contraseña.", 500));
+          }
+        });
+      });
+
+      req.on("error", (err) => {
+        console.error("Excepción al enviar correo con Brevo:", err);
+        reject(new AppError("No se pudo enviar el correo de recuperación de contraseña.", 500));
+      });
+
+      req.write(payload);
+      req.end();
+    });
   }
 }
 
 export const emailService = new EmailService();
+
+

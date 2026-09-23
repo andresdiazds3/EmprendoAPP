@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import * as SecureStore from "expo-secure-store";
+import { storage } from "../lib/storage";
 import { api } from "../lib/api";
 
 interface User {
@@ -25,20 +25,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
-        const token = await SecureStore.getItemAsync("token");
+        const token = await storage.getItem("token");
         if (token) {
           // Validar el token obteniendo info del usuario
           const response = await api.get("/api/auth/me");
           if (response.data?.success) {
             setUser(response.data.data);
           } else {
-            await SecureStore.deleteItemAsync("token");
+            await storage.deleteItem("token");
           }
         }
       } catch (e) {
         console.warn("Error cargando sesión inicial:", e);
         // Si falla la validación, eliminamos el token
-        await SecureStore.deleteItemAsync("token").catch(() => {});
+        await storage.deleteItem("token").catch(() => {});
       } finally {
         setIsLoading(false);
       }
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await api.post("/api/auth/login", { email, password });
     if (response.data?.success) {
       const { user: userData, token } = response.data.data;
-      await SecureStore.setItemAsync("token", token);
+      await storage.setItem("token", token);
       setUser(userData);
     }
   };
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await api.post("/api/auth/register", { name, email, password });
     if (response.data?.success) {
       const { user: userData, token } = response.data.data;
-      await SecureStore.setItemAsync("token", token);
+      await storage.setItem("token", token);
       setUser(userData);
     }
   };
@@ -70,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Intentamos llamar al endpoint del backend, ignorando fallos (ej. sin conexión)
       await api.post("/api/auth/logout").catch(() => {});
     } finally {
-      await SecureStore.deleteItemAsync("token");
+      await storage.deleteItem("token");
       setUser(null);
     }
   };
