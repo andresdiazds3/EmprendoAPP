@@ -25,6 +25,10 @@ const envSchema = z.object({
   BREVO_SENDER_EMAIL: z.string().email("BREVO_SENDER_EMAIL debe ser un correo válido"),
   BREVO_SENDER_NAME: z.string().default("Emprendo"),
   PASSWORD_RESET_CODE_EXPIRES_MIN: z.coerce.number().default(15),
+
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, "CLOUDINARY_CLOUD_NAME es requerida"),
+  CLOUDINARY_API_KEY: z.string().min(1, "CLOUDINARY_API_KEY es requerida"),
+  CLOUDINARY_API_SECRET: z.string().min(1, "CLOUDINARY_API_SECRET es requerida"),
 });
 
 const parsed = envSchema.safeParse(process.env);

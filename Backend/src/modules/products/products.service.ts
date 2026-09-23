@@ -4,6 +4,7 @@ import { UpdateProductDto } from "./dtos/update-product.dto";
 import { ListProductsDto } from "./dtos/list-products.dto";
 import { NotFoundError } from "../../core/errors";
 import { buildPaginatedResult } from "../../shared/utils/pagination";
+import { cloudinaryService } from "../../shared/services/cloudinary.service";
 
 function formatProduct<T extends { price: any; cost: any }>(product: T) {
   const priceNum = Number(product.price);
@@ -41,14 +42,28 @@ export class ProductsService {
 
   // Actualiza un producto validando pertenencia
   async update(userId: string, productId: string, dto: UpdateProductDto) {
-    await this.getById(userId, productId);
+    const existing = await this.getById(userId, productId);
+
+    const isImageChanged =
+      dto.imagePublicId !== undefined &&
+      dto.imagePublicId !== existing.imagePublicId;
+    const isImageRemoved =
+      dto.imageUrl === null || dto.imagePublicId === null;
+
+    if (existing.imagePublicId && (isImageChanged || isImageRemoved)) {
+      await cloudinaryService.deleteImage(existing.imagePublicId);
+    }
+
     const updated = await productsRepository.update(productId, dto);
     return formatProduct(updated);
   }
 
   // Realiza el borrado lógico del producto validando pertenencia
   async delete(userId: string, productId: string) {
-    await this.getById(userId, productId);
+    const existing = await this.getById(userId, productId);
+    if (existing.imagePublicId) {
+      await cloudinaryService.deleteImage(existing.imagePublicId);
+    }
     return productsRepository.softDelete(productId);
   }
 

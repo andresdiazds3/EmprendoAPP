@@ -24,6 +24,19 @@ export const createProductSchema = z.object({
     .int("El stock mínimo debe ser un número entero")
     .nonnegative("El stock mínimo debe ser mayor o igual a 0")
     .default(0),
-});
+  imageUrl: z.string().url("imageUrl debe ser una URL válida").optional(),
+  imagePublicId: z.string().min(1, "imagePublicId no puede estar vacío").optional(),
+}).refine(
+  (data) => {
+    const hasUrl = Boolean(data.imageUrl);
+    const hasPublicId = Boolean(data.imagePublicId);
+    return hasUrl === hasPublicId;
+  },
+  {
+    message: "imageUrl e imagePublicId deben enviarse juntos o ninguno",
+    path: ["imageUrl"],
+  }
+);
 
 export type CreateProductDto = z.infer<typeof createProductSchema>;
+

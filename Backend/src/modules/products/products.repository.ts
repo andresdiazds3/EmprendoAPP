@@ -14,6 +14,8 @@ export class ProductsRepository {
         price: new Prisma.Decimal(data.price),
         cost: new Prisma.Decimal(data.cost),
         minStock: data.minStock,
+        imageUrl: data.imageUrl,
+        imagePublicId: data.imagePublicId,
         userId,
       },
     });
@@ -87,6 +89,8 @@ export class ProductsRepository {
     if (data.price !== undefined) updateData.price = new Prisma.Decimal(data.price);
     if (data.cost !== undefined) updateData.cost = new Prisma.Decimal(data.cost);
     if (data.minStock !== undefined) updateData.minStock = data.minStock;
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+    if (data.imagePublicId !== undefined) updateData.imagePublicId = data.imagePublicId;
 
     return prisma.product.update({
       where: { id: productId },

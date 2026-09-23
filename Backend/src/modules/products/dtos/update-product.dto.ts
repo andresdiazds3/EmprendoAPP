@@ -27,6 +27,33 @@ export const updateProductSchema = z.object({
     .int("El stock mínimo debe ser un número entero")
     .nonnegative("El stock mínimo debe ser mayor o igual a 0")
     .optional(),
-});
+  imageUrl: z
+    .string()
+    .url("imageUrl debe ser una URL válida")
+    .nullable()
+    .optional(),
+  imagePublicId: z
+    .string()
+    .min(1, "imagePublicId no puede estar vacío")
+    .nullable()
+    .optional(),
+}).refine(
+  (data) => {
+    const hasUrl = data.imageUrl !== undefined;
+    const hasPublicId = data.imagePublicId !== undefined;
+    if (!hasUrl && !hasPublicId) return true;
+    if (hasUrl && hasPublicId) {
+      const urlIsNull = data.imageUrl === null;
+      const idIsNull = data.imagePublicId === null;
+      return urlIsNull === idIsNull;
+    }
+    return false;
+  },
+  {
+    message: "imageUrl e imagePublicId deben enviarse juntos o ninguno",
+    path: ["imageUrl"],
+  }
+);
 
 export type UpdateProductDto = z.infer<typeof updateProductSchema>;
+
