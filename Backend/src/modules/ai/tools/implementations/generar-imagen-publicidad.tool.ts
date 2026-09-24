@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { prisma } from "../../../../config/prisma";
+import { env } from "../../../../config/env";
 import { ToolDefinition } from "../../providers/ai.provider.interface";
 
 const schema = z.object({
@@ -48,6 +49,7 @@ export const generarImagenPublicidadToolDefinition: ToolDefinition = {
 
 export async function executeGenerarImagenPublicidad(userId: string, args: any) {
   const parsed = schema.parse(args);
+  const alt = parsed.nombreProducto ? `Anuncio publicitario de ${parsed.nombreProducto}` : "Anuncio publicitario";
 
   // 1. Si se especificó un producto y no se fuerza generación nueva, revisar si tiene foto real
   if (parsed.nombreProducto && !parsed.forzarGeneracionIA) {
@@ -68,40 +70,84 @@ export async function executeGenerarImagenPublicidad(userId: string, args: any) 
     });
 
     if (product && product.imageUrl) {
-      const alt = `Foto de ${product.name}`;
+      const productAlt = `Foto de ${product.name}`;
       return {
         exito: true,
         esFotoRealProducto: true,
         nombreProducto: product.name,
         url: product.imageUrl,
-        markdownImage: `![${alt}](${product.imageUrl})`,
-        instrucciones: `Muestra la foto real del producto en tu respuesta usando la sintaxis de markdown: ![${alt}](${product.imageUrl}). No muestres la URL suelta en texto.`,
+        markdownImage: `![${productAlt}](${product.imageUrl})`,
+        instrucciones: `Muestra la foto real del producto en tu respuesta usando la sintaxis de markdown: ![${productAlt}](${product.imageUrl}). No muestres la URL suelta en texto.`,
       };
     }
   }
 
-  // 2. Generar imagen publicitaria con IA
+  // Dimensiones según formato
   let width = 1024;
   let height = 1024;
+  let imagen3AspectRatio = "1:1";
 
   if (parsed.formato === "vertical") {
     width = 768;
     height = 1344;
+    imagen3AspectRatio = "9:16";
   } else if (parsed.formato === "horizontal") {
     width = 1280;
     height = 720;
+    imagen3AspectRatio = "16:9";
   }
 
-  // Prompt enriquecido para máxima calidad publicitaria comercial
   const enhancedPrompt = `Professional commercial product advertisement, ${parsed.prompt}, studio lighting, high-end marketing aesthetic, photorealistic, sharp focus, 8k resolution, award winning advertising photography, clean composition`;
+
+  // 2. Intentar generar con Google Imagen 3 si hay GEMINI_API_KEY configurada
+  if (env.GEMINI_API_KEY && env.GEMINI_API_KEY.trim().length > 0) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${env.GEMINI_API_KEY.trim()}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instances: [{ prompt: enhancedPrompt }],
+            parameters: {
+              sampleCount: 1,
+              aspectRatio: imagen3AspectRatio,
+              personGeneration: "allow_adult",
+            },
+          }),
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+
+      if (response.ok) {
+        const data: any = await response.json();
+        const firstPred = data?.predictions?.[0];
+        if (firstPred?.bytesBase64Encoded) {
+          const mime = firstPred.mimeType || "image/jpeg";
+          const dataUrl = `data:${mime};base64,${firstPred.bytesBase64Encoded}`;
+          return {
+            exito: true,
+            esFotoRealProducto: false,
+            proveedor: "Google Imagen 3",
+            url: dataUrl,
+            markdownImage: `![${alt}](${dataUrl})`,
+            instrucciones: `Muestra la imagen generada usando la sintaxis de markdown: ![${alt}](${dataUrl}). NUNCA muestres la URL en texto plano.`,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("Imagen 3 no disponible o límite alcanzado, usando fallback...", err);
+    }
+  }
+
+  // 3. Fallback con Flux ultra HD
   const seed = Math.floor(Math.random() * 900000) + 100000;
   const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${width}&height=${height}&model=flux&seed=${seed}&nologo=true`;
-
-  const alt = parsed.nombreProducto ? `Anuncio publicitario de ${parsed.nombreProducto}` : "Anuncio publicitario";
 
   return {
     exito: true,
     esFotoRealProducto: false,
+    proveedor: "Flux High Quality",
     url: imageUrl,
     markdownImage: `![${alt}](${imageUrl})`,
     instrucciones: `Muestra la imagen generada usando la sintaxis de markdown exactamente: ![${alt}](${imageUrl}). NUNCA muestres la URL en texto plano ni enlaces largos.`,
