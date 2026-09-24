@@ -140,9 +140,9 @@ export async function executeGenerarImagenPublicidad(userId: string, args: any) 
     }
   }
 
-  // 3. Fallback con Flux ultra HD
+  // 3. Fallback con motor de alta calidad comercial
   const seed = Math.floor(Math.random() * 900000) + 100000;
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${width}&height=${height}&model=flux&seed=${seed}&nologo=true`;
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
 
   return {
     exito: true,
