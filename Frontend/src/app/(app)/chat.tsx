@@ -18,6 +18,7 @@ import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { aiApi, ChatMessageItem, ChatSessionItem } from "../../lib/ai.api";
 import { queryKeys } from "../../lib/queryKeys";
+import { MarkdownText } from "../../components/MarkdownText";
 
 const SUGGESTED_PROMPTS = [
   "¿Cuánto vendí este mes?",
@@ -244,9 +245,11 @@ export default function ChatScreen() {
                         <Text style={styles.loadingText}>{item.content}</Text>
                       </View>
                     ) : (
-                      <Text style={isUser ? styles.userText : styles.assistantText}>
-                        {item.content}
-                      </Text>
+                      <MarkdownText
+                        content={item.content}
+                        baseStyle={isUser ? styles.userText : styles.assistantText}
+                        isUser={isUser}
+                      />
                     )}
                   </View>
                 </View>

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Drawer } from "expo-router/drawer";
 import { useRouter, usePathname } from "expo-router";
 import { useAuth } from "../../context/AuthContext";
@@ -29,20 +29,31 @@ function CustomDrawerContent() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
-      {/* Cabecera del Perfil */}
-      <View style={styles.profileHeader}>
+      {/* Cabecera del Perfil (Tocable para editar perfil) */}
+      <TouchableOpacity
+        style={styles.profileHeader}
+        onPress={() => router.push("/(app)/profile" as any)}
+        activeOpacity={0.7}
+      >
         <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>
-            {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
-          </Text>
+          {user?.profilePictureUrl ? (
+            <Image source={{ uri: user.profilePictureUrl }} style={styles.avatarImage} />
+          ) : (
+            <Text style={styles.avatarText}>
+              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+            </Text>
+          )}
         </View>
-        <Text style={styles.profileName} numberOfLines={1}>
-          {user?.name || "Usuario"}
-        </Text>
+        <View style={styles.profileNameRow}>
+          <Text style={styles.profileName} numberOfLines={1}>
+            {user?.name || "Usuario"}
+          </Text>
+          <Feather name="edit-2" size={14} color="#6D28D9" style={styles.editIcon} />
+        </View>
         <Text style={styles.profileEmail} numberOfLines={1}>
           {user?.email || ""}
         </Text>
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.menuDivider} />
 
@@ -101,6 +112,7 @@ export default function AppLayout() {
       <Drawer.Screen name="expenses" />
       <Drawer.Screen name="reports" />
       <Drawer.Screen name="chat" />
+      <Drawer.Screen name="profile" />
     </Drawer>
   );
 }
@@ -125,17 +137,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1.5,
     borderColor: "#EAE5F5",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
   },
   avatarText: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#6D28D9",
   },
+  profileNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
   profileName: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#1A1A1A",
-    marginBottom: 2,
+    maxWidth: 180,
+  },
+  editIcon: {
+    marginLeft: 6,
   },
   profileEmail: {
     fontSize: 13,

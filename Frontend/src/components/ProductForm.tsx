@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { ImagePickerField } from "./ImagePickerField";
+import { uploadImageToCloudinary } from "../lib/cloudinary";
 
 const productSchema = z.object({
   name: z
@@ -31,10 +33,18 @@ const productSchema = z.object({
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
+export interface ProductFormSubmitValues extends ProductFormValues {
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
+}
+
 interface ProductFormProps {
-  initialValues?: Partial<ProductFormValues>;
+  initialValues?: Partial<ProductFormValues> & {
+    imageUrl?: string | null;
+    imagePublicId?: string | null;
+  };
   stock?: number;
-  onSubmit: (values: ProductFormValues) => void | Promise<void>;
+  onSubmit: (values: ProductFormSubmitValues) => void | Promise<void>;
   isSubmitting: boolean;
   onDelete?: () => void;
   onViewMovements?: () => void;
@@ -49,6 +59,15 @@ export function ProductForm({
   onViewMovements,
 }: ProductFormProps) {
   const [focusedField, setFocusedField] = React.useState<string | null>(null);
+
+  // Estados para manejo de la imagen
+  const [selectedLocalUri, setSelectedLocalUri] = useState<string | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null | undefined>(
+    initialValues?.imageUrl
+  );
+  const [isImageCleared, setIsImageCleared] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const {
     control,
@@ -70,8 +89,83 @@ export function ProductForm({
   const costVal = parseFloat(watch("cost") as any || 0);
   const isBelowCost = priceVal > 0 && costVal > 0 && priceVal < costVal;
 
+  const handleImageSelected = (localUri: string) => {
+    setImageError(null);
+    setSelectedLocalUri(localUri);
+    setCurrentImageUrl(localUri);
+    setIsImageCleared(false);
+  };
+
+  const handleImageCleared = () => {
+    setImageError(null);
+    setSelectedLocalUri(null);
+    setCurrentImageUrl(null);
+    setIsImageCleared(true);
+  };
+
+  const handleFormSubmit = async (values: ProductFormValues) => {
+    setImageError(null);
+    let imagePayload: { imageUrl?: string | null; imagePublicId?: string | null } = {};
+
+    // 1. Si el usuario seleccionó una imagen nueva local, subirla primero a Cloudinary
+    if (selectedLocalUri) {
+      try {
+        setIsUploadingImage(true);
+        const uploadRes = await uploadImageToCloudinary(selectedLocalUri, "products");
+        imagePayload = {
+          imageUrl: uploadRes.url,
+          imagePublicId: uploadRes.publicId,
+        };
+      } catch (err: any) {
+        setIsUploadingImage(false);
+        const msg = err.message || "No se pudo subir la imagen, intenta de nuevo";
+        setImageError(msg);
+        return; // Abortar guardado si falla la subida
+      } finally {
+        setIsUploadingImage(false);
+      }
+    } else if (isImageCleared) {
+      // 2. Si el usuario quitó la imagen explícitamente
+      imagePayload = {
+        imageUrl: null,
+        imagePublicId: null,
+      };
+    } else if (initialValues?.imageUrl) {
+      // 3. Si no se modificó la imagen y ya existía
+      imagePayload = {
+        imageUrl: initialValues.imageUrl,
+        imagePublicId: initialValues.imagePublicId,
+      };
+    }
+
+    await onSubmit({
+      ...values,
+      ...imagePayload,
+    });
+  };
+
+  const isFormBusy = isSubmitting || isUploadingImage;
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      {/* Selector de Imagen */}
+      <ImagePickerField
+        imageUrl={currentImageUrl}
+        onImageSelected={handleImageSelected}
+        onImageCleared={handleImageCleared}
+        shape="square"
+        placeholderIcon="package"
+        uploading={isUploadingImage}
+        disabled={isFormBusy}
+        label="Foto del producto (opcional)"
+      />
+
+      {imageError && (
+        <View style={styles.imageErrorBanner}>
+          <Text style={styles.imageErrorText}>{imageError}</Text>
+        </View>
+      )}
+
       {stock !== undefined && (
         <View style={styles.stockBox}>
           <Text style={styles.stockBoxText}>
@@ -197,13 +291,18 @@ export function ProductForm({
 
       {/* Botón de Submit Principal */}
       <TouchableOpacity
-        style={[styles.submitButton, (!isValid || isSubmitting) && styles.submitButtonDisabled]}
-        disabled={!isValid || isSubmitting}
-        onPress={handleSubmit(onSubmit)}
+        style={[styles.submitButton, (!isValid || isFormBusy) && styles.submitButtonDisabled]}
+        disabled={!isValid || isFormBusy}
+        onPress={handleSubmit(handleFormSubmit)}
         activeOpacity={0.8}
       >
-        {isSubmitting ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
+        {isFormBusy ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color="#FFFFFF" />
+            <Text style={styles.submitButtonText}>
+              {isUploadingImage ? "Subiendo foto..." : "Guardando..."}
+            </Text>
+          </View>
         ) : (
           <Text style={styles.submitButtonText}>Guardar producto</Text>
         )}
@@ -214,7 +313,7 @@ export function ProductForm({
         <TouchableOpacity
           style={styles.movementsButton}
           onPress={onViewMovements}
-          disabled={isSubmitting}
+          disabled={isFormBusy}
           activeOpacity={0.7}
         >
           <Text style={styles.movementsButtonText}>Ver movimientos de stock →</Text>
@@ -226,7 +325,7 @@ export function ProductForm({
         <TouchableOpacity
           style={styles.deleteButton}
           onPress={onDelete}
-          disabled={isSubmitting}
+          disabled={isFormBusy}
           activeOpacity={0.7}
         >
           <Text style={styles.deleteButtonText}>Eliminar producto</Text>
@@ -239,6 +338,19 @@ export function ProductForm({
 const styles = StyleSheet.create({
   scrollContent: {
     paddingVertical: 16,
+  },
+  imageErrorBanner: {
+    backgroundColor: "#FEE2E2",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+  imageErrorText: {
+    color: "#DC2626",
+    fontSize: 13,
+    textAlign: "center",
   },
   stockBox: {
     backgroundColor: "#F7F5FB",
@@ -316,6 +428,11 @@ const styles = StyleSheet.create({
   submitButtonDisabled: {
     opacity: 0.5,
   },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   submitButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
@@ -344,3 +461,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+

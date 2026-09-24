@@ -32,4 +32,7 @@ export const queryKeys = {
     sessions: ["ai", "sessions"] as const,
     messages: (sessionId: string) => ["ai", "messages", sessionId] as const,
   },
+  auth: {
+    me: ["auth", "me"] as const,
+  },
 };

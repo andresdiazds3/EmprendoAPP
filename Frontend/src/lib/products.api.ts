@@ -7,6 +7,8 @@ export interface Product {
   cost: string;  // El backend devuelve Decimal serializado como string
   stock: number;
   minStock: number;
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
   ventaBajoCosto?: boolean;
   deletedAt: string | null;
   createdAt: string;
@@ -32,7 +34,14 @@ export interface PaginatedResult<T> {
 
 export const productsApi = {
   // Crear un producto
-  create: async (data: { name: string; price: number; cost: number; minStock: number }) => {
+  create: async (data: {
+    name: string;
+    price: number;
+    cost: number;
+    minStock: number;
+    imageUrl?: string | null;
+    imagePublicId?: string | null;
+  }) => {
     const response = await api.post<{ success: boolean; data: Product }>("/api/products", data);
     return response.data.data;
   },
@@ -50,7 +59,17 @@ export const productsApi = {
   },
 
   // Actualizar un producto por ID
-  update: async (id: string, data: { name?: string; price?: number; cost?: number; minStock?: number }) => {
+  update: async (
+    id: string,
+    data: {
+      name?: string;
+      price?: number;
+      cost?: number;
+      minStock?: number;
+      imageUrl?: string | null;
+      imagePublicId?: string | null;
+    }
+  ) => {
     const response = await api.patch<{ success: boolean; data: Product }>(`/api/products/${id}`, data);
     return response.data.data;
   },

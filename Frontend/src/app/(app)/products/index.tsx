@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams, useNavigation } from "expo-router";
@@ -225,6 +226,15 @@ export default function ProductsListScreen() {
                 }}
                 activeOpacity={0.7}
               >
+                {/* Thumbnail 48x48 */}
+                {item.imageUrl ? (
+                  <Image source={{ uri: item.imageUrl }} style={styles.thumbnailImage} />
+                ) : (
+                  <View style={styles.thumbnailPlaceholder}>
+                    <Feather name="package" size={22} color="#6B7280" />
+                  </View>
+                )}
+
                 <View style={styles.productInfo}>
                   <Text style={styles.productName} numberOfLines={1}>
                     {item.name}
@@ -381,18 +391,35 @@ const styles = StyleSheet.create({
   },
   productCard: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#F7F5FB",
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1.5,
     borderColor: "transparent",
   },
+  thumbnailImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: "#E5E7EB",
+  },
+  thumbnailPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#EAE5F5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
   productInfo: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 12,
   },
   productName: {
     fontSize: 16,

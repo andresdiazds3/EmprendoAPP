@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "../../../lib/products.api";
-import { ProductForm, ProductFormValues } from "../../../components/ProductForm";
+import { ProductForm, ProductFormSubmitValues } from "../../../components/ProductForm";
 import { queryKeys } from "../../../lib/queryKeys";
 
 export default function NewProductScreen() {
@@ -13,7 +13,7 @@ export default function NewProductScreen() {
   const [serverError, setServerError] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: (values: ProductFormValues) => productsApi.create(values),
+    mutationFn: (values: ProductFormSubmitValues) => productsApi.create(values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
@@ -28,7 +28,7 @@ export default function NewProductScreen() {
     },
   });
 
-  const onSubmit = (values: ProductFormValues) => {
+  const onSubmit = (values: ProductFormSubmitValues) => {
     setServerError(null);
     mutation.mutate(values);
   };

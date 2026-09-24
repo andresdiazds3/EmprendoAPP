@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -44,6 +44,7 @@ export default function NewExpenseScreen() {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isValid },
   } = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema) as any,
@@ -54,6 +55,18 @@ export default function NewExpenseScreen() {
     },
     mode: "onChange",
   });
+
+  // Limpiar el formulario y errores cada vez que la pantalla gana foco
+  useFocusEffect(
+    useCallback(() => {
+      reset({
+        concept: "",
+        amount: "" as any,
+        expenseDate: new Date(),
+      });
+      setServerError(null);
+    }, [reset])
+  );
 
   const expenseDateValue = watch("expenseDate");
 
@@ -67,6 +80,11 @@ export default function NewExpenseScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.expenses.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
+      reset({
+        concept: "",
+        amount: "" as any,
+        expenseDate: new Date(),
+      });
       router.back();
     },
     onError: (error: any) => {

@@ -4,6 +4,12 @@ import { consultarUtilidadToolDefinition, executeConsultarUtilidad } from "./imp
 import { consultarStockProductoToolDefinition, executeConsultarStockProducto } from "./implementations/consultar-stock-producto.tool";
 import { consultarProductosBajoStockToolDefinition, executeConsultarProductosBajoStock } from "./implementations/consultar-productos-bajo-stock.tool";
 import { consultarTopProductosToolDefinition, executeConsultarTopProductos } from "./implementations/consultar-top-productos.tool";
+import { consultarInfoClienteToolDefinition, executeConsultarInfoCliente } from "./implementations/consultar-info-cliente.tool";
+import { listarCatalogoProductosToolDefinition, executeListarCatalogoProductos } from "./implementations/listar-catalogo-productos.tool";
+import { consultarGastosToolDefinition, executeConsultarGastos } from "./implementations/consultar-gastos.tool";
+import { consultarResumenGeneralToolDefinition, executeConsultarResumenGeneral } from "./implementations/consultar-resumen-general.tool";
+import { consultarDetalleVentasToolDefinition, executeConsultarDetalleVentas } from "./implementations/consultar-detalle-ventas.tool";
+import { buscarWebOMercadoToolDefinition, executeBuscarWebOMercado } from "./implementations/buscar-web-o-mercado.tool";
 
 export interface RegisteredTool {
   definition: ToolDefinition;
@@ -31,6 +37,30 @@ export function getToolRegistry(): Record<string, RegisteredTool> {
     consultar_top_productos: {
       definition: consultarTopProductosToolDefinition,
       execute: executeConsultarTopProductos,
+    },
+    consultar_info_cliente: {
+      definition: consultarInfoClienteToolDefinition,
+      execute: (userId: string) => executeConsultarInfoCliente(userId),
+    },
+    listar_catalogo_productos: {
+      definition: listarCatalogoProductosToolDefinition,
+      execute: executeListarCatalogoProductos,
+    },
+    consultar_gastos: {
+      definition: consultarGastosToolDefinition,
+      execute: executeConsultarGastos,
+    },
+    consultar_resumen_general: {
+      definition: consultarResumenGeneralToolDefinition,
+      execute: executeConsultarResumenGeneral,
+    },
+    consultar_detalle_ventas: {
+      definition: consultarDetalleVentasToolDefinition,
+      execute: executeConsultarDetalleVentas,
+    },
+    buscar_web_o_mercado: {
+      definition: buscarWebOMercadoToolDefinition,
+      execute: executeBuscarWebOMercado,
     },
   };
 }

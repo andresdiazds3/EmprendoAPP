@@ -13,7 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "../../../lib/products.api";
-import { ProductForm, ProductFormValues } from "../../../components/ProductForm";
+import { ProductForm, ProductFormSubmitValues } from "../../../components/ProductForm";
 import { queryKeys } from "../../../lib/queryKeys";
 import { useRefetchOnFocus } from "../../../hooks/useRefetchOnFocus";
 
@@ -34,7 +34,7 @@ export default function EditProductScreen() {
 
   // Mutación para actualizar
   const updateMutation = useMutation({
-    mutationFn: (values: ProductFormValues) => productsApi.update(id, values),
+    mutationFn: (values: ProductFormSubmitValues) => productsApi.update(id, values),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.reports.all });
@@ -67,7 +67,7 @@ export default function EditProductScreen() {
     },
   });
 
-  const onSubmit = (values: ProductFormValues) => {
+  const onSubmit = (values: ProductFormSubmitValues) => {
     setServerError(null);
     updateMutation.mutate(values);
   };
@@ -132,6 +132,8 @@ export default function EditProductScreen() {
                 price: parseFloat(product.price),
                 cost: parseFloat(product.cost),
                 minStock: product.minStock,
+                imageUrl: product.imageUrl,
+                imagePublicId: product.imagePublicId,
               }}
               stock={product.stock}
               onSubmit={onSubmit}

@@ -2,10 +2,12 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { storage } from "../lib/storage";
 import { api } from "../lib/api";
 
-interface User {
+export interface User {
   id: string;
   email: string;
   name: string;
+  profilePictureUrl?: string | null;
+  profilePicturePublicId?: string | null;
 }
 
 interface AuthContextType {
@@ -14,6 +16,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +25,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const refreshUser = async () => {
+    try {
+      const response = await api.get("/api/auth/me");
+      if (response.data?.success) {
+        setUser(response.data.data);
+      }
+    } catch (e) {
+      console.warn("Error refrescando info del usuario:", e);
+    }
+  };
+
+  const updateUser = (userData: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...userData } : null));
+  };
 
   useEffect(() => {
     const bootstrapAsync = async () => {
@@ -76,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
