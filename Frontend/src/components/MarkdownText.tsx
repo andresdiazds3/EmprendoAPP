@@ -93,37 +93,19 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({
           return <View key={lineIndex} style={styles.emptyLine} />;
         }
 
-        // Encabezados (### Titular)
-        if (trimmed.startsWith("### ")) {
-          const headingText = trimmed.replace(/^###\s+/, "");
+        // Encabezados Markdown (# a ######)
+        const headingMatch = trimmed.match(/^(#{1,6})\s*(.*)$/);
+        if (headingMatch) {
+          const level = headingMatch[1].length;
+          const headingText = headingMatch[2].trim();
+          if (!headingText) {
+            return null; // Filtra líneas que sean sólo hashes tipo "####"
+          }
+          const headingStyle = level === 1 ? styles.h1 : level === 2 ? styles.h2 : styles.h3;
           return (
             <View key={lineIndex} style={styles.headingBlock}>
-              <Text style={[baseStyle, styles.h3, isUser ? styles.userBold : styles.assistantBold]}>
-                {parseInline(headingText, [baseStyle, styles.h3], isUser)}
-              </Text>
-            </View>
-          );
-        }
-
-        // Encabezados (## Titular)
-        if (trimmed.startsWith("## ")) {
-          const headingText = trimmed.replace(/^##\s+/, "");
-          return (
-            <View key={lineIndex} style={styles.headingBlock}>
-              <Text style={[baseStyle, styles.h2, isUser ? styles.userBold : styles.assistantBold]}>
-                {parseInline(headingText, [baseStyle, styles.h2], isUser)}
-              </Text>
-            </View>
-          );
-        }
-
-        // Encabezados (# Titular)
-        if (trimmed.startsWith("# ")) {
-          const headingText = trimmed.replace(/^#\s+/, "");
-          return (
-            <View key={lineIndex} style={styles.headingBlock}>
-              <Text style={[baseStyle, styles.h1, isUser ? styles.userBold : styles.assistantBold]}>
-                {parseInline(headingText, [baseStyle, styles.h1], isUser)}
+              <Text style={[baseStyle, headingStyle, isUser ? styles.userBold : styles.assistantBold]}>
+                {parseInline(headingText, [baseStyle, headingStyle], isUser)}
               </Text>
             </View>
           );
@@ -157,19 +139,44 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({
           );
         }
 
-        // Imágenes (![alt](url))
-        const imageMatch = trimmed.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
-        if (imageMatch) {
-          const alt = imageMatch[1];
-          const url = imageMatch[2];
+        // Imágenes en formato Markdown: ![alt](url)
+        const mdImageMatch = trimmed.match(/!\[(.*?)\]\((https?:\/\/[^\s)]+)\)/);
+        if (mdImageMatch) {
+          const alt = mdImageMatch[1] || "Imagen publicitaria";
+          const url = mdImageMatch[2];
+          const matchIndex = mdImageMatch.index ?? 0;
+          const beforeText = trimmed.substring(0, matchIndex).trim();
+          const afterText = trimmed.substring(matchIndex + mdImageMatch[0].length).trim();
+
+          return (
+            <View key={lineIndex} style={styles.container}>
+              {beforeText ? (
+                <Text style={[baseStyle, styles.paragraphLine]}>
+                  {parseInline(beforeText, baseStyle, isUser)}
+                </Text>
+              ) : null}
+              <View style={styles.imageContainer}>
+                <Image source={{ uri: url }} style={styles.image} resizeMode="cover" />
+                {alt ? <Text style={styles.imageCaption}>{alt}</Text> : null}
+              </View>
+              {afterText ? (
+                <Text style={[baseStyle, styles.paragraphLine]}>
+                  {parseInline(afterText, baseStyle, isUser)}
+                </Text>
+              ) : null}
+            </View>
+          );
+        }
+
+        // URL directa de imagen (Pollinations, Cloudinary, o extensión .jpg/.png)
+        const directImageMatch = trimmed.match(
+          /^(https?:\/\/[^\s]+(?:\.png|\.jpg|\.jpeg|\.webp|image\.pollinations\.ai[^\s]*|res\.cloudinary\.com[^\s]*))$/i
+        );
+        if (directImageMatch) {
+          const url = directImageMatch[1];
           return (
             <View key={lineIndex} style={styles.imageContainer}>
-              <Image
-                source={{ uri: url }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-              {alt ? <Text style={styles.imageCaption}>{alt}</Text> : null}
+              <Image source={{ uri: url }} style={styles.image} resizeMode="cover" />
             </View>
           );
         }
@@ -280,7 +287,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 220,
+    height: 240,
     borderRadius: 12,
   },
   imageCaption: {
