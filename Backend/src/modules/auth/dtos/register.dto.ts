@@ -10,6 +10,9 @@ export const registerSchema = z.object({
   name: z
     .string({ required_error: "El nombre es requerido" })
     .min(1, "El nombre no puede estar vacío"),
+  acceptedTerms: z.literal(true, {
+    errorMap: () => ({ message: "Debes aceptar los Términos y Condiciones para crear una cuenta" }),
+  }),
 });
 
 export type RegisterDto = z.infer<typeof registerSchema>;

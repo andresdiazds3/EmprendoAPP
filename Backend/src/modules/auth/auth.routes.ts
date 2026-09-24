@@ -16,5 +16,6 @@ router.post("/reset-password", passwordResetRateLimiter, catchAsync(authControll
 // Rutas protegidas
 router.post("/logout", authMiddleware as any, catchAsync(authController.logout));
 router.get("/me", authMiddleware as any, catchAsync(authController.me));
+router.post("/accept-terms", authMiddleware as any, catchAsync(authController.acceptTerms));
 
 export const authRoutes = router;

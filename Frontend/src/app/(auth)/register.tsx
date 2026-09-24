@@ -11,7 +11,8 @@ import {
   ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -41,9 +42,11 @@ const registerFormSchema = z
 type RegisterFormValues = z.infer<typeof registerFormSchema>;
 
 export default function RegisterScreen() {
+  const router = useRouter();
   const { register } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
 
   // Estado para pintar el borde violeta de focus en cada input
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -64,10 +67,11 @@ export default function RegisterScreen() {
   });
 
   const onSubmit = async (data: RegisterFormValues) => {
+    if (!hasAcceptedTerms) return;
     setServerError(null);
     setIsSubmitting(true);
     try {
-      await register(data.name, data.email, data.password);
+      await register(data.name, data.email, data.password, true);
     } catch (error: any) {
       console.error("Error en registro:", error);
       const msg =
@@ -234,20 +238,40 @@ export default function RegisterScreen() {
               )}
             </View>
 
-            {/* Botón Registrarse */}
+            {/* Checkbox Términos y Condiciones */}
+            <View style={styles.termsContainer}>
+              <TouchableOpacity
+                style={[styles.checkbox, hasAcceptedTerms && styles.checkboxChecked]}
+                onPress={() => setHasAcceptedTerms((prev) => !prev)}
+                activeOpacity={0.7}
+              >
+                {hasAcceptedTerms && <Feather name="check" size={15} color="#FFFFFF" />}
+              </TouchableOpacity>
+              <Text style={styles.termsText}>
+                He leído y acepto los{" "}
+                <Text
+                  style={styles.termsLink}
+                  onPress={() => router.push("/(legal)/terms" as any)}
+                >
+                  Términos y Condiciones
+                </Text>
+              </Text>
+            </View>
+
+            {/* Botón Crear cuenta */}
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                (!isValid || isSubmitting) && styles.submitButtonDisabled,
+                (!isValid || isSubmitting || !hasAcceptedTerms) && styles.submitButtonDisabled,
               ]}
-              disabled={!isValid || isSubmitting}
+              disabled={!isValid || isSubmitting || !hasAcceptedTerms}
               onPress={handleSubmit(onSubmit)}
               activeOpacity={0.8}
             >
               {isSubmitting ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitButtonText}>Registrarse</Text>
+                <Text style={styles.submitButtonText}>Crear cuenta</Text>
               )}
             </TouchableOpacity>
 
@@ -381,5 +405,38 @@ const styles = StyleSheet.create({
     color: "#6D28D9",
     fontSize: 14,
     fontWeight: "600",
+  },
+  termsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: "#9CA3AF",
+    backgroundColor: "#F7F5FB",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  checkboxChecked: {
+    backgroundColor: "#6D28D9",
+    borderColor: "#6D28D9",
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#1A1A1A",
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: "#6D28D9",
+    fontWeight: "600",
+    textDecorationLine: "underline",
   },
 });

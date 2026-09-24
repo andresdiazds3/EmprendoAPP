@@ -18,6 +18,8 @@ function CustomDrawerContent() {
     { label: "Gastos", route: "/expenses", icon: "dollar-sign" as const },
     { label: "Reportes", route: "/reports", icon: "bar-chart-2" as const },
     { label: "Asistente IA", route: "/chat", icon: "message-circle" as const },
+    { label: "Términos y Condiciones", route: "/(legal)/terms", icon: "file-text" as const },
+    { label: "Créditos", route: "/credits", icon: "info" as const },
   ];
 
   const isActive = (itemRoute: string) => {
@@ -113,6 +115,7 @@ export default function AppLayout() {
       <Drawer.Screen name="reports" />
       <Drawer.Screen name="chat" />
       <Drawer.Screen name="profile" />
+      <Drawer.Screen name="credits" />
     </Drawer>
   );
 }

@@ -30,6 +30,12 @@ export class AuthController {
     return ok(res, user, "Datos del usuario obtenidos");
   }
 
+  async acceptTerms(req: AuthenticatedRequest, res: Response) {
+    const userId = req.user!.id;
+    const user = await authService.acceptTerms(userId);
+    return ok(res, user, "Términos y condiciones aceptados exitosamente");
+  }
+
   async forgotPassword(req: Request, res: Response) {
     const validatedData = forgotPasswordSchema.parse(req.body);
     await authService.forgotPassword(validatedData.email);

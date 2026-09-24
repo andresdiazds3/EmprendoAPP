@@ -21,6 +21,7 @@ export class AuthService {
       email: dto.email,
       passwordHash,
       name: dto.name,
+      termsAcceptedAt: new Date(),
     });
 
     const token = this.generateToken(user.id, user.email);
@@ -32,6 +33,7 @@ export class AuthService {
         name: user.name,
         profilePictureUrl: user.profilePictureUrl,
         profilePicturePublicId: user.profilePicturePublicId,
+        termsAcceptedAt: user.termsAcceptedAt,
       },
       token,
     };
@@ -57,6 +59,7 @@ export class AuthService {
         name: user.name,
         profilePictureUrl: user.profilePictureUrl,
         profilePicturePublicId: user.profilePicturePublicId,
+        termsAcceptedAt: user.termsAcceptedAt,
       },
       token,
     };
@@ -74,6 +77,25 @@ export class AuthService {
       name: user.name,
       profilePictureUrl: user.profilePictureUrl,
       profilePicturePublicId: user.profilePicturePublicId,
+      termsAcceptedAt: user.termsAcceptedAt,
+    };
+  }
+
+  async acceptTerms(userId: string) {
+    const user = await authRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundError("Usuario");
+    }
+
+    const updatedUser = await authRepository.updateTermsAccepted(userId);
+
+    return {
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      profilePictureUrl: updatedUser.profilePictureUrl,
+      profilePicturePublicId: updatedUser.profilePicturePublicId,
+      termsAcceptedAt: updatedUser.termsAcceptedAt,
     };
   }
 

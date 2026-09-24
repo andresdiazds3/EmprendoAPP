@@ -35,12 +35,29 @@ function InitialLayout() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inAuthGroup = segments[0] === "(auth)";
+    const seg0 = segments[0] as string;
+    const seg1 = segments[1] as string;
+    const inAuthGroup = seg0 === "(auth)";
+    const inLegalGroup = seg0 === "(legal)";
+    const isAcceptTermsScreen = inAuthGroup && seg1 === "accept-terms";
 
-    if (!user && !inAuthGroup) {
-      router.replace("/(auth)/login");
-    } else if (user && inAuthGroup) {
-      router.replace("/(app)");
+    if (!user) {
+      if (!inAuthGroup && !inLegalGroup) {
+        router.replace("/(auth)/login" as any);
+      }
+    } else {
+      // Usuario autenticado
+      if (!user.termsAcceptedAt) {
+        // No ha aceptado los términos y condiciones: pantalla de aceptación forzosa
+        if (!isAcceptTermsScreen && !inLegalGroup) {
+          router.replace("/(auth)/accept-terms" as any);
+        }
+      } else {
+        // Ya ha aceptado los términos: si está en pantalla de auth, redirigir a app
+        if (inAuthGroup) {
+          router.replace("/(app)" as any);
+        }
+      }
     }
   }, [user, isLoading, segments]);
 

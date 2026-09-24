@@ -8,16 +8,18 @@ export interface User {
   name: string;
   profilePictureUrl?: string | null;
   profilePicturePublicId?: string | null;
+  termsAcceptedAt?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, acceptedTerms?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
+  acceptTerms: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,12 +77,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    const response = await api.post("/api/auth/register", { name, email, password });
+  const register = async (name: string, email: string, password: string, acceptedTerms: boolean = true) => {
+    const response = await api.post("/api/auth/register", { name, email, password, acceptedTerms });
     if (response.data?.success) {
       const { user: userData, token } = response.data.data;
       await storage.setItem("token", token);
       setUser(userData);
+    }
+  };
+
+  const acceptTerms = async () => {
+    const response = await api.post("/api/auth/accept-terms");
+    if (response.data?.success) {
+      const updatedUser = response.data.data;
+      setUser(updatedUser);
     }
   };
 
@@ -95,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser, refreshUser, acceptTerms }}>
       {children}
     </AuthContext.Provider>
   );
