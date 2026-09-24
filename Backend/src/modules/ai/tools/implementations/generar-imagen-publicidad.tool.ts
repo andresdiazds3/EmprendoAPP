@@ -99,7 +99,45 @@ export async function executeGenerarImagenPublicidad(userId: string, args: any) 
 
   const enhancedPrompt = `Professional commercial product advertisement, ${parsed.prompt}, studio lighting, high-end marketing aesthetic, photorealistic, sharp focus, 8k resolution, award winning advertising photography, clean composition`;
 
-  // 2. Intentar generar con Google Imagen 3 si hay GEMINI_API_KEY configurada
+  // 2. Intentar con OpenAI DALL-E 3 si OPENAI_API_KEY está configurada
+  if (env.OPENAI_API_KEY && env.OPENAI_API_KEY.trim().length > 0) {
+    try {
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${env.OPENAI_API_KEY.trim()}`,
+        },
+        body: JSON.stringify({
+          model: "dall-e-3",
+          prompt: enhancedPrompt,
+          n: 1,
+          size: parsed.formato === "vertical" ? "1024x1792" : parsed.formato === "horizontal" ? "1792x1024" : "1024x1024",
+          quality: "standard",
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+
+      if (response.ok) {
+        const data: any = await response.json();
+        const imageUrl = data?.data?.[0]?.url;
+        if (imageUrl) {
+          return {
+            exito: true,
+            esFotoRealProducto: false,
+            proveedor: "OpenAI DALL-E 3",
+            url: imageUrl,
+            markdownImage: `![${alt}](${imageUrl})`,
+            instrucciones: `Muestra la imagen generada usando la sintaxis de markdown: ![${alt}](${imageUrl}). NUNCA muestres la URL en texto plano.`,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn("OpenAI DALL-E 3 no disponible o límite alcanzado:", err);
+    }
+  }
+
+  // 3. Intentar generar con Google Imagen 3 si hay GEMINI_API_KEY configurada
   if (env.GEMINI_API_KEY && env.GEMINI_API_KEY.trim().length > 0) {
     try {
       const response = await fetch(
@@ -140,7 +178,7 @@ export async function executeGenerarImagenPublicidad(userId: string, args: any) 
     }
   }
 
-  // 3. Fallback con motor de alta calidad comercial
+  // 4. Fallback con motor de alta calidad comercial
   const seed = Math.floor(Math.random() * 900000) + 100000;
   const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
 
