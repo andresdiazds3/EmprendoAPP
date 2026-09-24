@@ -14,7 +14,11 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
   OPENROUTER_API_KEY: z.string().min(1, "OPENROUTER_API_KEY es requerida"),
-  OPENROUTER_MODELS: z.string().default("openai/gpt-oss-20b:free,openrouter/free"),
+  OPENROUTER_MODELS: z
+    .string()
+    .default(
+      "meta-llama/llama-3.3-70b-instruct:free,google/gemini-2.0-flash-lite-preview:free,qwen/qwen-2.5-72b-instruct:free,deepseek/deepseek-chat:free,openai/gpt-oss-20b:free"
+    ),
   AI_MAX_TOOL_ITERATIONS: z.coerce.number().default(5),
   AI_DEFAULT_PROVIDER: z.enum(["openai", "gemini", "groq", "openrouter"]).default("openai"),
 

@@ -10,6 +10,7 @@ import { consultarGastosToolDefinition, executeConsultarGastos } from "./impleme
 import { consultarResumenGeneralToolDefinition, executeConsultarResumenGeneral } from "./implementations/consultar-resumen-general.tool";
 import { consultarDetalleVentasToolDefinition, executeConsultarDetalleVentas } from "./implementations/consultar-detalle-ventas.tool";
 import { buscarWebOMercadoToolDefinition, executeBuscarWebOMercado } from "./implementations/buscar-web-o-mercado.tool";
+import { generarImagenPublicidadToolDefinition, executeGenerarImagenPublicidad } from "./implementations/generar-imagen-publicidad.tool";
 
 export interface RegisteredTool {
   definition: ToolDefinition;
@@ -61,6 +62,10 @@ export function getToolRegistry(): Record<string, RegisteredTool> {
     buscar_web_o_mercado: {
       definition: buscarWebOMercadoToolDefinition,
       execute: executeBuscarWebOMercado,
+    },
+    generar_imagen_publicidad_o_redes: {
+      definition: generarImagenPublicidadToolDefinition,
+      execute: executeGenerarImagenPublicidad,
     },
   };
 }

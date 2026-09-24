@@ -21,10 +21,13 @@ import { queryKeys } from "../../lib/queryKeys";
 import { MarkdownText } from "../../components/MarkdownText";
 
 const SUGGESTED_PROMPTS = [
-  "¿Cuánto vendí este mes?",
-  "¿Tengo productos agotándose?",
-  "¿Cuál fue mi ganancia neta?",
-  "¿Cuáles son mis productos más vendidos?",
+  "💡 Generar una idea de emprendimiento",
+  "📢 Crear una publicidad y anuncio visual para mis productos",
+  "📊 Elaborar un plan de negocio completo",
+  "🎨 Generar contenido y posts para redes sociales",
+  "🏷️ Crear nombres y eslóganes comerciales",
+  "🤖 ¿Cuánto vendí y cuál fue mi ganancia neta este mes?",
+  "🔍 ¿Tengo productos con bajo stock?",
 ];
 
 export default function ChatScreen() {

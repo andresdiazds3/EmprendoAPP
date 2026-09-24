@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TextStyle, StyleProp, Platform } from "react-native";
+import { View, Text, StyleSheet, TextStyle, StyleProp, Platform, Image } from "react-native";
 
 interface MarkdownTextProps {
   content: string;
@@ -157,6 +157,23 @@ export const MarkdownText: React.FC<MarkdownTextProps> = ({
           );
         }
 
+        // Imágenes (![alt](url))
+        const imageMatch = trimmed.match(/^!\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
+        if (imageMatch) {
+          const alt = imageMatch[1];
+          const url = imageMatch[2];
+          return (
+            <View key={lineIndex} style={styles.imageContainer}>
+              <Image
+                source={{ uri: url }}
+                style={styles.image}
+                resizeMode="cover"
+              />
+              {alt ? <Text style={styles.imageCaption}>{alt}</Text> : null}
+            </View>
+          );
+        }
+
         // Párrafo normal
         return (
           <Text key={lineIndex} style={[baseStyle, styles.paragraphLine]}>
@@ -253,5 +270,25 @@ const styles = StyleSheet.create({
   },
   userText: {
     color: "#FFFFFF",
+  },
+  imageContainer: {
+    marginVertical: 10,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: "#EAE5F5",
+    width: "100%",
+  },
+  image: {
+    width: "100%",
+    height: 220,
+    borderRadius: 12,
+  },
+  imageCaption: {
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+    paddingTop: 6,
+    paddingBottom: 4,
+    fontStyle: "italic",
   },
 });
